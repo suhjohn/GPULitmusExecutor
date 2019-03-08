@@ -22,9 +22,9 @@ import android.widget.TextView;
 public class HelloJni extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        System.loadLibrary("foo");
-        System.loadLibrary("OpenCL");
-        System.loadLibrary("hello-jni");
+//        System.loadLibrary("foo");
+//        System.loadLibrary("OpenCL");
+//        System.loadLibrary("hello-jni");
         super.onCreate(savedInstanceState);
         /* Retrieve our TextView and set its content.
          * the text is retrieved by calling a native
@@ -58,5 +58,6 @@ public class HelloJni extends AppCompatActivity {
      * installation time by the package manager.
      */
     static {
+        System.loadLibrary("hello-jni");
     }
 }
