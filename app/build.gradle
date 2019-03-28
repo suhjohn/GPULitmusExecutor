@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId 'com.example.hellojni'
+        applicationId 'com.example.openclexample'
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
@@ -14,7 +14,6 @@ android {
             abiFilters 'arm64-v8a'
         }
     }
-
     buildTypes {
         release {
             minifyEnabled false
@@ -24,13 +23,12 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path "/Users/mac/AndroidStudioProjects/HelloJNI3/app/src/main/cpp/CMakeLists.txt"
+            path "./src/main/cpp/CMakeLists.txt"
         }
     }
     sourceSets {
         main {
-            jniLibs.srcDirs '/Users/mac/AndroidStudioProjects/HelloJNI3/app/src/main/jniLibs'
-
+            jniLibs.srcDirs './src/main/jniLibs'
         }
     }
 }

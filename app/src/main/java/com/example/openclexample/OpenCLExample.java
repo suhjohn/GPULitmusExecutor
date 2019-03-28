@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.hellojni;
+package com.example.openclexample;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
-public class HelloJni extends AppCompatActivity {
+public class OpenCLExample extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-//        System.loadLibrary("foo");
-//        System.loadLibrary("OpenCL");
-//        System.loadLibrary("hello-jni");
         super.onCreate(savedInstanceState);
         /* Retrieve our TextView and set its content.
          * the text is retrieved by calling a native
@@ -35,13 +32,13 @@ public class HelloJni extends AppCompatActivity {
         tv.setText( stringFromJNI() );
     }
     /* A native method that is implemented by the
-     * 'hello-jni' native library, which is packaged
+     * 'opencl-example' native library, which is packaged
      * with this application.
      */
     public native String  stringFromJNI();
 
     /* This is another native method declaration that is *not*
-     * implemented by 'hello-jni'. This is simply to show that
+     * implemented by 'opencl-example'. This is simply to show that
      * you can declare as many native methods in your Java code
      * as you want, their implementation is searched in the
      * currently loaded native libraries only the first time
@@ -52,12 +49,12 @@ public class HelloJni extends AppCompatActivity {
      */
     public native String  unimplementedStringFromJNI();
 
-    /* this is used to load the 'hello-jni' library on application
+    /* this is used to load the 'opencl-example' library on application
      * startup. The library has already been unpacked into
-     * /data/data/com.example.hellojni/lib/libhello-jni.so at
+     * /data/data/com.example.openclexample/lib/libopencl-example.so at
      * installation time by the package manager.
      */
     static {
-        System.loadLibrary("hello-jni");
+        System.loadLibrary("opencl-example");
     }
 }

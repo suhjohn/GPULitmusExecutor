@@ -18,13 +18,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Simple compute kernel which computes the square of an input array
-//
-//const char *KernelSource =
-//        "__kernel void square(__global float* input, __global float* output, const unsigned int count) { \n" \
-//  "   int i = get_global_id(0);                                                                    \n" \
-//  "   if(i < count) { output[i] = input[i] * input[i]; }                                           \n" \
-//  "}";
 
 const char *KernelSource = "\n" \
 "__kernel void square(                                                       \n" \
@@ -40,14 +33,8 @@ const char *KernelSource = "\n" \
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/* This is a trivial JNI example where we use a native method
- * to return a new VM String. See the corresponding Java source
- * file located at:
- *
- *   hello-jni/app/src/main/java/com/example/hellojni/HelloJni.java
- */
 JNIEXPORT jstring JNICALL
-Java_com_example_hellojni_HelloJni_stringFromJNI(JNIEnv *env,
+Java_com_example_openclexample_OpenCLExample_stringFromJNI(JNIEnv *env,
                                                  jobject thiz) {
 
     char ret[100];                      // Return string
@@ -59,7 +46,8 @@ Java_com_example_hellojni_HelloJni_stringFromJNI(JNIEnv *env,
 
     size_t global;                      // global domain size for our calculation
     size_t local;                       // local domain size for our calculation
-
+    size_t calculated_local;
+    size_t device_max_work_group_size;
     cl_device_id device_id;             // compute device id
     cl_context context;                 // compute context
     cl_command_queue commands;          // compute command queue
@@ -168,20 +156,30 @@ Java_com_example_hellojni_HelloJni_stringFromJNI(JNIEnv *env,
     }
 
     // Get the maximum work group size for executing the kernel on the device
-    //
-    err = clGetKernelWorkGroupInfo(kernel, device_id, CL_KERNEL_WORK_GROUP_SIZE, sizeof(local), &local, NULL);
+    err = clGetKernelWorkGroupInfo(kernel, device_id, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &local, NULL);
     if (err != CL_SUCCESS)
     {
         printf("Error: Failed to retrieve kernel work group info! %d\n", err);
         exit(1);
     }
 
+
+    clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE,
+            sizeof(size_t), &device_max_work_group_size, NULL);
+
     // Execute the kernel over the entire range of our 1d input data set
     // using the maximum number of work group items for this device
-    //
     global = count;
     // if &global, NULL, then no problem. if &local, failure
-    err = clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, NULL, 0, NULL, NULL);
+    calculated_local = local;
+    local = 256;
+    // TODO guess that in ARM local get up to 128
+    // TODO Return the return value of local
+    // TODO Return the return value of this function
+    // TODO Qualcomm chip version - figure out what would be good
+    err = clEnqueueNDRangeKernel(commands, kernel, 1, NULL, &global, &local, 0, NULL, NULL);
+//    sprintf(ret, "Hello from JNI! error: '%d local: %d", err, local);
+//    return (*env)->NewStringUTF(env, ret);
     if (err)
     {
         printf("Error: Failed to execute kernel!\n");
@@ -212,7 +210,9 @@ Java_com_example_hellojni_HelloJni_stringFromJNI(JNIEnv *env,
             correct++;
     }
 
-    sprintf(ret, "Hello from JNI! Computed '%d/%d' correct values!", correct, count);
+    sprintf(ret, "Hello from JNI! Computed '%d/%d' correct values! "
+                 "calculated work group:%d max work group: %d",
+            correct, count, calculated_local, device_max_work_group_size);
     clReleaseMemObject(input);
     clReleaseMemObject(output);
     clReleaseProgram(program);
