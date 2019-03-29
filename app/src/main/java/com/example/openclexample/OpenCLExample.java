@@ -19,6 +19,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
+import java.io.InputStream;
+
 public class OpenCLExample extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,17 +30,36 @@ public class OpenCLExample extends AppCompatActivity {
          * function.
          */
         setContentView(R.layout.activity_hello_jni);
-        TextView tv = (TextView)findViewById(R.id.hello_textview);
-        tv.setText( stringFromJNI() );
+        TextView tv = (TextView) findViewById(R.id.hello_textview);
+        String dataDir = getApplicationInfo().dataDir;
+        try {
+            InputStream configStream = getAssets().open("tests/MP/config.txt");
+            int configSize = configStream.available();
+            byte[] configBuffer = new byte[configSize];
+            configStream.read(configBuffer);
+            configStream.close();
+            String configString = new String(configBuffer);
+
+            InputStream kernelStream = getAssets().open("tests/MP/kernel.cl");
+            int kernelSize = kernelStream.available();
+            byte[] kernelBuffer = new byte[kernelSize];
+            kernelStream.read(kernelBuffer);
+            kernelStream.close();
+            String kernelString = new String(kernelBuffer);
+            tv.setText(stringFromJNI(configString, kernelString));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
     /* A native method that is implemented by the
-     * 'opencl-example' native library, which is packaged
+     * 'litmus-test' native library, which is packaged
      * with this application.
      */
-    public native String  stringFromJNI();
+    public native String stringFromJNI(String configString, String kernelString);
 
     /* This is another native method declaration that is *not*
-     * implemented by 'opencl-example'. This is simply to show that
+     * implemented by 'litmus-test'. This is simply to show that
      * you can declare as many native methods in your Java code
      * as you want, their implementation is searched in the
      * currently loaded native libraries only the first time
@@ -47,14 +68,13 @@ public class OpenCLExample extends AppCompatActivity {
      * Trying to call this function will result in a
      * java.lang.UnsatisfiedLinkError exception !
      */
-    public native String  unimplementedStringFromJNI();
 
-    /* this is used to load the 'opencl-example' library on application
+    /* this is used to load the 'litmus-test' library on application
      * startup. The library has already been unpacked into
      * /data/data/com.example.openclexample/lib/libopencl-example.so at
      * installation time by the package manager.
      */
     static {
-        System.loadLibrary("opencl-example");
+        System.loadLibrary("litmus-test");
     }
 }

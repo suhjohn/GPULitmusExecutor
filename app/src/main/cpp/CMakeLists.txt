@@ -34,19 +34,9 @@ endif ()
 
 find_library(log-lib log)
 
-add_library(opencl-example
-        SHARED
-        opencl-example.c)
-
-target_link_libraries(
-        opencl-example
-        OpenCL
-        android
-        log)
-
 add_library(litmus-test
         SHARED
-        main.cpp)
+        litmus-test.cpp)
 
 target_link_libraries(
         litmus-test
