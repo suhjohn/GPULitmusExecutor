@@ -15,7 +15,9 @@
 #define CL_DEVICE_BOARD_NAME_AMD 0x4038
 #endif
 
-#define check_ocl(err) check_ocl_error(err, __FILE__, __LINE__)
+#define check_ocl(err) check_ocl_error(err, __FILE__, __LINE__);
+#define log_cl_err(err) if (err != CL_SUCCESS){ return_str << __FILE__ << ":" << __LINE__ << ": error " << err << std::endl; return env->NewStringUTF(return_str.str().c_str());}
+
 
 void check_ocl_error(const int e, const char *file, const int line) {
     if (e < 0) {
@@ -23,6 +25,7 @@ void check_ocl_error(const int e, const char *file, const int line) {
         exit(1);
     }
 }
+
 
 class CL_Execution {
 public:
@@ -196,15 +199,15 @@ public:
 
         int ret;
         return_str << "Compile Kernel..." << std::endl;
-        return_str << std::endl << kernel_string << std::endl;
+//        return_str << std::endl << kernel_string << std::endl;
         cache_kernel_include = kernel_include;
-        exec_program = cl::Program(exec_context, kernel_string);
+        exec_program = cl::Program(exec_context, kernel_string, false, &ret);
+        return_str << ret << std::endl;
         std::stringstream options;
         options.setf(std::ios::fixed, std::ios::floatfield);
 
         //set compiler options here, example below
-        //options << " -cl-fast-relaxed-math";
-        options << "-I" << kernel_include << " ";        // Include the rt_device sources
+//        options << "-I" << kernel_include << " ";        // Include the rt_device sources
         options << check_ocl2x();                        // Check to see if we're OpenCL 2.0
         options << get_vendor_option();                  // Check to see if we're OpenCL 2.0
 
@@ -218,8 +221,7 @@ public:
             return ret;
 
             // QUESTION: When is this executed?
-//            if (false)
-//              dump_program_binary(exec_program);
+//            if (false) dump_program_binary(exec_program);
         }
         return_str << "Build Success! " << std::endl;
         return ret;

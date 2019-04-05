@@ -11,22 +11,26 @@ __kernel void litmus_test(
 
   if (TEST_THREAD_0) {
     // Work-item 0 in workgroup 0:
-    test_barrier(&(ga[3]));
-    //atomic_fetch_add(&out[0], 1);
-    out[0] = atomic_load_explicit(&ga[1], memory_order_relaxed, memory_scope_device);
-    out[1] = atomic_load_explicit(&ga[0], memory_order_relaxed, memory_scope_device);
-    
+//    test_barrier(&(ga[3]));
+//    atomic_fetch_add(&ga[16], 1);
+//    out[0] = atomic_load_explicit(&ga[1], memory_order_relaxed, memory_scope_device);
+    // [Tyler addition] This is acquiring lock
+    int tmp1, tmp2;
+    tmp1 = atomic_load_explicit(&ga[128], memory_order_relaxed, memory_scope_device);
+    tmp2 = atomic_load_explicit(&ga[0], memory_order_relaxed, memory_scope_device);
+    out[0] = tmp1;
+    out[1] = tmp2;
+
   } else if (TEST_THREAD_1) {
     // Work-item 0 in workgroup 1:
     test_barrier(&(ga[3]));
-    //atomic_fetch_add(&out[1], 1);
     atomic_store_explicit(&ga[0], 1, memory_order_relaxed, memory_scope_device);
-    atomic_store_explicit(&ga[1], 1, memory_order_relaxed, memory_scope_device);
+    // [Tyler addition] Think of mutex releasing lock
+    atomic_store_explicit(&ga[128], 1, memory_order_relaxed, memory_scope_device);
   }
 }
 
 __kernel void check_outputs(__global int *output, __global int *result) {
-  
   if (get_global_id(0) == 0) {
     int r1 = output[0];
     int r2 = output[1];
@@ -39,7 +43,7 @@ __kernel void check_outputs(__global int *output, __global int *result) {
     else if (r1 == 0 && r2 == 1) {
       *result = 2;
     }
-    else if (r1 == 0 && r2 == 1) {
+    else if (r1 == 1 && r2 == 0) {
       *result = 3;
     }
     else {

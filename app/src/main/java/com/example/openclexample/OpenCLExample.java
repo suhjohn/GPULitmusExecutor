@@ -31,21 +31,37 @@ public class OpenCLExample extends AppCompatActivity {
          */
         setContentView(R.layout.activity_hello_jni);
         TextView tv = (TextView) findViewById(R.id.hello_textview);
-        String dataDir = getApplicationInfo().dataDir;
+        String kernelFile = "tests/MP/kernel.cl";
+        String configFile = "tests/MP/config.txt";
+
         try {
-            InputStream configStream = getAssets().open("tests/MP/config.txt");
+            int err;
+            // Combine testing_common and kernel.cl
+            InputStream testingCommonStream = getAssets().open("tests/testing_common.h");
+            int testingCommonSize = testingCommonStream.available();
+            byte[] testingCommonBuffer = new byte[testingCommonSize];
+            err = testingCommonStream.read(testingCommonBuffer);
+            testingCommonStream.close();
+            String testingCommonString = new String(testingCommonBuffer);
+            testingCommonString += "\n";
+
+            InputStream kernelStream = getAssets().open(kernelFile);
+            int kernelSize = kernelStream.available();
+            byte[] kernelBuffer = new byte[kernelSize];
+            err = kernelStream.read(kernelBuffer);
+            kernelStream.close();
+            String kernelString = new String(kernelBuffer);
+
+            kernelString = kernelString.substring(kernelString.indexOf('\n') + 1);
+            kernelString = testingCommonString + kernelString;
+
+            InputStream configStream = getAssets().open(configFile);
             int configSize = configStream.available();
             byte[] configBuffer = new byte[configSize];
-            configStream.read(configBuffer);
+            err = configStream.read(configBuffer);
             configStream.close();
             String configString = new String(configBuffer);
 
-            InputStream kernelStream = getAssets().open("tests/MP/kernel.cl");
-            int kernelSize = kernelStream.available();
-            byte[] kernelBuffer = new byte[kernelSize];
-            kernelStream.read(kernelBuffer);
-            kernelStream.close();
-            String kernelString = new String(kernelBuffer);
             tv.setText(stringFromJNI(configString, kernelString));
         } catch (Exception e) {
             e.printStackTrace();
