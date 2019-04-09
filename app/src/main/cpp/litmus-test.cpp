@@ -80,34 +80,6 @@ void populate_ChipConfigMaps() {
     ChipConfigMaps["GeForce 940M"] = Nvidia940M;
 }
 
-TestConfig parse_config_file(std::string config_file) {
-    std::ifstream infile(config_file);
-    TestConfig ret;
-    std::string title, ignore;
-
-    std::getline(infile, title);
-    std::cout << "parsing config for test: " << title << std::endl;
-    std::getline(infile, ignore); // "results"
-    std::getline(infile, ignore);
-
-    ret.hist_size = std::stoi(ignore);
-
-    //infile >> ret.hist_size;
-    for (int i = 0; i < ret.hist_size; i++) {
-        std::string out_desc;
-        std::getline(infile, out_desc);
-        ret.hist_strings.push_back(out_desc);
-        //std::cout << "parsed line: " << out_desc << std::endl;
-    }
-    ret.hist_strings.push_back("errors: ");
-    ret.hist_size++;
-    std::getline(infile, ignore); // "num outputs"
-    std::getline(infile, ignore);
-    ret.output_size = std::stoi(ignore);
-    //std::cout << "output size: " << ret.output_size << std::endl;
-
-    return ret;
-}
 
 TestConfig parse_config(const std::string &config_str, std::stringstream &return_str) {
     std::stringstream config_stream(config_str);

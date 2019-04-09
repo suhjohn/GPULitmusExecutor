@@ -19,9 +19,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
+import com.loopj.android.http.JsonHttpResponseHandler;
+
+import org.json.JSONObject;
+
 import java.io.InputStream;
 
-public class OpenCLExample extends AppCompatActivity {
+public class OpenCLExample extends AppCompatActivity implements OnLoopjCompleted {
+    TextView tv;
+
+    public void taskCompleted(JSONObject results) {
+        tv.setText(results.toString());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,42 +40,43 @@ public class OpenCLExample extends AppCompatActivity {
          * function.
          */
         setContentView(R.layout.activity_hello_jni);
-        TextView tv = (TextView) findViewById(R.id.hello_textview);
+        tv = (TextView) findViewById(R.id.hello_textview);
         String kernelFile = "tests/MP/kernel.cl";
         String configFile = "tests/MP/config.txt";
+        APIHandler.hello(this);
 
-        try {
-            int err;
-            // Combine testing_common and kernel.cl
-            InputStream testingCommonStream = getAssets().open("tests/testing_common.h");
-            int testingCommonSize = testingCommonStream.available();
-            byte[] testingCommonBuffer = new byte[testingCommonSize];
-            err = testingCommonStream.read(testingCommonBuffer);
-            testingCommonStream.close();
-            String testingCommonString = new String(testingCommonBuffer);
-            testingCommonString += "\n";
-
-            InputStream kernelStream = getAssets().open(kernelFile);
-            int kernelSize = kernelStream.available();
-            byte[] kernelBuffer = new byte[kernelSize];
-            err = kernelStream.read(kernelBuffer);
-            kernelStream.close();
-            String kernelString = new String(kernelBuffer);
-
-            kernelString = kernelString.substring(kernelString.indexOf('\n') + 1);
-            kernelString = testingCommonString + kernelString;
-
-            InputStream configStream = getAssets().open(configFile);
-            int configSize = configStream.available();
-            byte[] configBuffer = new byte[configSize];
-            err = configStream.read(configBuffer);
-            configStream.close();
-            String configString = new String(configBuffer);
-
-            tv.setText(stringFromJNI(configString, kernelString));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            int err;
+//            // Combine testing_common and kernel.cl
+//            InputStream testingCommonStream = getAssets().open("tests/testing_common.h");
+//            int testingCommonSize = testingCommonStream.available();
+//            byte[] testingCommonBuffer = new byte[testingCommonSize];
+//            err = testingCommonStream.read(testingCommonBuffer);
+//            testingCommonStream.close();
+//            String testingCommonString = new String(testingCommonBuffer);
+//            testingCommonString += "\n";
+//
+//            InputStream kernelStream = getAssets().open(kernelFile);
+//            int kernelSize = kernelStream.available();
+//            byte[] kernelBuffer = new byte[kernelSize];
+//            err = kernelStream.read(kernelBuffer);
+//            kernelStream.close();
+//            String kernelString = new String(kernelBuffer);
+//
+//            kernelString = kernelString.substring(kernelString.indexOf('\n') + 1);
+//            kernelString = testingCommonString + kernelString;
+//
+//            InputStream configStream = getAssets().open(configFile);
+//            int configSize = configStream.available();
+//            byte[] configBuffer = new byte[configSize];
+//            err = configStream.read(configBuffer);
+//            configStream.close();
+//            String configString = new String(configBuffer);
+//
+//            tv.setText(stringFromJNI(configString, kernelString));
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     /* A native method that is implemented by the
