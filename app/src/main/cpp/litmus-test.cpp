@@ -168,10 +168,10 @@ std::string jstringToString(JNIEnv *env, jstring jStr) {
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_example_openclexample_OpenCLExample_stringFromJNI(JNIEnv *env,
-                                                           jobject thiz,
-                                                           jstring config_string,
-                                                           jstring kernel_string) {
+Java_com_example_openclexample_TestFinishedActivity_stringFromJNI(JNIEnv *env,
+                                                                   jobject thiz,
+                                                                   jstring config_string,
+                                                                   jstring kernel_string) {
 
     int err = 0;
     CL_Execution exec;

@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">OpenCLExample</string>
+    <string name="app_name">AndroidGPUTester</string>
+    <string name="main_test_button">Start Test</string>
+    <string name="main_description">
+        GPUs are often prone to memory consistency bugs.
+        The application runs tests using OpenCL to check if there are any bugs with your GPU if
+        it exists.
+    </string>
 </resources>
