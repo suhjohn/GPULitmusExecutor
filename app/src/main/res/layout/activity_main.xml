@@ -14,11 +14,11 @@
         android:layout_width="fill_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:background="@android:color/transparent"
+        android:gravity="center_vertical"
         android:text="@string/app_name"
         android:textAlignment="center"
-        android:gravity="center_vertical"
         android:textAppearance="@style/TextAppearance.AppCompat.Headline"
-        android:background="@android:color/transparent"
         android:textSize="36sp"
         android:textStyle="bold" />
 
@@ -27,6 +27,35 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical">
+
+        <android.support.constraint.ConstraintLayout
+            android:id="@+id/activity_main_test_start_form"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+
+            <android.support.design.widget.TextInputLayout
+                android:id="@+id/activity_main_test_start_form_iteration"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_percent=".5">
+
+                <EditText
+                    android:id="@+id/editText"
+                    android:inputType="number"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Iteration" />
+
+            </android.support.design.widget.TextInputLayout>
+        </android.support.constraint.ConstraintLayout>
+
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/activity_main_test_start_container"
@@ -38,15 +67,14 @@
 
             <android.support.v7.widget.AppCompatButton
                 android:id="@+id/activity_main_test_start_button"
+                style="@style/Widget.AppCompat.Button.Colored"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:backgroundTint="@color/colorPrimary"
+                android:backgroundTint="@color/colorAccent"
                 android:elevation="10dp"
                 android:onClick="executeTest"
                 android:padding="20dp"
-                android:state_enabled="true"
-                android:state_pressed="true"
                 android:text="@string/main_test_button"
                 android:textAppearance="@style/TextAppearance.AppCompat.Button"
                 android:textColor="@color/white"

@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.10)
 
 
 # Include OpenCL
+set(CMAKE_CXX_STANDARD 17)
+
 set(jniLibsDir ${PROJECT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI})
 
 include_directories(includes)

@@ -2,12 +2,14 @@ package com.example.openclexample;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.TextView;
 
 import java.io.InputStream;
 
 public class TestFinishedActivity extends AppCompatActivity {
     TextView tv;
+    int iteration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -16,7 +18,13 @@ public class TestFinishedActivity extends AppCompatActivity {
          * the text is retrieved by calling a native
          * function.
          */
+        Bundle bundle = getIntent().getExtras();
+        iteration = bundle.getInt("iteration");
         setContentView(R.layout.activity_test_finished);
+        executeTest();
+    }
+
+    protected void executeTest() {
         tv = (TextView) findViewById(R.id.activity_test_finished_result);
         String kernelFile = "tests/MP/kernel.cl";
         String configFile = "tests/MP/config.txt";
@@ -48,35 +56,17 @@ public class TestFinishedActivity extends AppCompatActivity {
             err = configStream.read(configBuffer);
             configStream.close();
             String configString = new String(configBuffer);
-
-            tv.setText(stringFromJNI(configString, kernelString));
+            String result = executeLitmusTest(configString, kernelString, iteration);
+            tv.setText(result);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    /* A native method that is implemented by the
-     * 'litmus-test' native library, which is packaged
-     * with this application.
-     */
-    public native String stringFromJNI(String configString, String kernelString);
+    public native String executeLitmusTest(String configString,
+                                           String kernelString,
+                                           int iteration);
 
-    /* This is another native method declaration that is *not*
-     * implemented by 'litmus-test'. This is simply to show that
-     * you can declare as many native methods in your Java code
-     * as you want, their implementation is searched in the
-     * currently loaded native libraries only the first time
-     * you call them.
-     *
-     * Trying to call this function will result in a
-     * java.lang.UnsatisfiedLinkError exception !
-     */
-
-    /* this is used to load the 'litmus-test' library on application
-     * startup. The library has already been unpacked into
-     * /data/data/com.example.openclexample/lib/libopencl-example.so at
-     * installation time by the package manager.
-     */
     static {
         System.loadLibrary("litmus-test");
     }

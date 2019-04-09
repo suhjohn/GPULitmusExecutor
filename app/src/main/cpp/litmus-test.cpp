@@ -18,12 +18,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dlfcn.h>
+#include <random>
+#include <nlohmann/json.hpp>
 #include "cl_execution.h"
 
 #define SIZE 1024
 #define NANOSEC 1000000000LL
 
-// To compile: nvcc .\main.c -lOpenCL
+// for convenience
+using json = nlohmann::json;
 
 /*cl_device_id device_id = NULL;
 cl_context context = NULL;
@@ -42,7 +45,8 @@ void set_up_opencl_junk() {
   command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
 }*/
 
-//This needs to be INPUT_FILE for Windows
+// DEFAULT VALUES for testing
+// This needs to be INPUT_FILE for Windows
 char *OUTPUT = NULL;
 std::string INPUT_FILE;
 std::string kernel_include = "./tests";
@@ -166,13 +170,19 @@ std::string jstringToString(JNIEnv *env, jstring jStr) {
     return ret;
 }
 
+int jintToInt(JNIEnv *env, jint value) {
+    int val = (int32_t) value;
+    return val;
+}
+
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_example_openclexample_TestFinishedActivity_stringFromJNI(JNIEnv *env,
-                                                                   jobject thiz,
-                                                                   jstring config_string,
-                                                                   jstring kernel_string) {
-
+Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *env,
+                                                                      jobject thiz,
+                                                                      jstring config_string,
+                                                                      jstring kernel_string,
+                                                                      jint iteration) {
+    json j;
     int err = 0;
     CL_Execution exec;
 
@@ -181,7 +191,7 @@ Java_com_example_openclexample_TestFinishedActivity_stringFromJNI(JNIEnv *env,
     /* Modified configuration */
     USE_CHIP_CONFIG = 0;
     OUTPUT = NULL;
-    ITERATIONS = 1000;
+    ITERATIONS = iteration;
     LIST = 0;
     PLATFORM_ID = 0;
     DEVICE_ID = 0;
@@ -316,7 +326,10 @@ Java_com_example_openclexample_TestFinishedActivity_stringFromJNI(JNIEnv *env,
             hshuffled_ids[j] = j;
         }
 
-        std::random_shuffle(hshuffled_ids, &hshuffled_ids[global_size - 1]);
+        // Random Shuffle
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(hshuffled_ids, &hshuffled_ids[global_size - 1], g);
         err = exec.exec_queue.enqueueWriteBuffer(dshuffled_ids, CL_TRUE, 0,
                                                  sizeof(cl_int) * (global_size), hshuffled_ids);
         log_cl_err(err);
@@ -365,6 +378,9 @@ Java_com_example_openclexample_TestFinishedActivity_stringFromJNI(JNIEnv *env,
     //free(hga);
     //free(hgna);
     //free(houtput);
+    j["device_name"] = nullptr;
+    j["kernel"] = nullptr;
+    j["test_name"] = nullptr;
 
     return env->NewStringUTF(return_str.str().c_str());
 }
