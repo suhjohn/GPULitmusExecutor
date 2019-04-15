@@ -45,18 +45,6 @@ void set_up_opencl_junk() {
   command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
 }*/
 
-// DEFAULT VALUES for testing
-// This needs to be INPUT_FILE for Windows
-char *OUTPUT = NULL;
-std::string INPUT_FILE;
-std::string kernel_include = "./tests";
-int LIST = 0;
-int PLATFORM_ID = 0;
-int DEVICE_ID = 0;
-int QUIET = 0;
-int ITERATIONS = 1000;
-int USE_CHIP_CONFIG = 0;
-
 struct TestConfig {
     int hist_size;
     std::vector<std::string> hist_strings;
@@ -70,7 +58,20 @@ struct ChipConfig {
     //int SIMD_width; //will be needed for intra-wg interactions
 };
 
+// DEFAULT VALUES for testing
+// This needs to be INPUT_FILE for Windows
+char *OUTPUT = NULL;
+int LIST = 0;
+int PLATFORM_ID = 0;
+int DEVICE_ID = 0;
+int QUIET = 0;
+int ITERATIONS = 1000;
+int USE_CHIP_CONFIG = 0;
+std::string INPUT_FILE;
+std::string kernel_include = "./tests";
+cl_platform_id *platforms;
 std::map<std::string, ChipConfig> ChipConfigMaps;
+
 
 void populate_ChipConfigMaps() {
     ChipConfig defaultChipConfig = {256, 1, 18};
@@ -114,32 +115,47 @@ TestConfig parse_config(const std::string &config_str, std::stringstream &return
 }
 
 //From IWOCL tutorial (needs attribution)
-unsigned long getDeviceList(std::vector<std::vector<cl::Device>> &devices) {
-// Get list of platforms
-    std::vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
+unsigned getDeviceList(std::vector<std::vector<cl_device_id>> &devices) {
+    // Get list of platforms
+    int err = 0;
+    cl_uint num_plats = 0;
+    err = clGetPlatformIDs(0, NULL, &num_plats);
+    check_ocl(err);
+    platforms = (cl_platform_id *) malloc(sizeof(cl_platform_id) * num_plats);
+    clGetPlatformIDs(num_plats, platforms, NULL);
+    check_ocl(err);
 
-// Enumerate devices
-    for (unsigned int i = 0; i < platforms.size(); i++) {
-        std::vector<cl::Device> plat_devices;
-        platforms[i].getDevices(CL_DEVICE_TYPE_ALL, &plat_devices);
-        devices.push_back(plat_devices);
+    // Enumerate devices
+    for (unsigned int i = 0; i < num_plats; i++) {
+        //std::vector<cl::Device> plat_devices;
+        cl_uint num_devices = 0;
+        err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
+        check_ocl(err);
+        cl_device_id *plat_devices = (cl_device_id *) malloc(sizeof(cl_device_id) * num_devices);
+        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices, plat_devices, NULL);
+
+
+        //platforms[i].getDevices(CL_DEVICE_TYPE_ALL, &plat_devices);
+        std::vector<cl_device_id> to_push;
+        for (unsigned int j = 0; j < num_devices; j++) {
+            to_push.push_back(plat_devices[j]);
+        }
+        devices.push_back(to_push);
         //devices.insert(devices.end(), plat_devices.begin(), plat_devices.end());
     }
-
     return devices.size();
 }
 
 cl_int get_kernels(CL_Execution &exec) {
+
     cl_int ret = CL_SUCCESS;
-    exec.exec_kernels["litmus_test"] = cl::Kernel(exec.exec_program, "litmus_test", &ret);
-    check_ocl(ret);
+
+    exec.exec_kernels["litmus_test"] = clCreateKernel(exec.exec_program, "litmus_test", &ret);
 
     //Consider doing this for robustness
     //exec.check_kernel_wg_sizes(exec.exec_kernels["bfs_init"], "bfs_init", TB_SIZE);
 
-    exec.exec_kernels["check_outputs"] = cl::Kernel(exec.exec_program, "check_outputs", &ret);
-    check_ocl(ret);
+    exec.exec_kernels["check_outputs"] = clCreateKernel(exec.exec_program, "check_outputs", &ret);
 
     //Consider doing this for robustness
     //exec.check_kernel_wg_sizes(exec.exec_kernels["bfs_kernel"], "bfs_kernel", TB_SIZE);
@@ -183,10 +199,12 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
                                                                       jstring kernel_string,
                                                                       jint iteration) {
     json j;
-    int err = 0;
     CL_Execution exec;
-
+    std::string opts;
     std::stringstream return_str;
+    ChipConfig cConfig;
+    std::vector<std::vector<cl_device_id>> devices;
+    int err = 0;
 
     /* Modified configuration */
     USE_CHIP_CONFIG = 0;
@@ -197,38 +215,7 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     DEVICE_ID = 0;
     INPUT_FILE = "../../../cpp/tests/MP";
 
-    void *openCLHndl;
-    const char *default_so_paths[] = {
-            // Android
-            "/system/lib/libOpenCL.so",
-            "/system/lib64/libOpenCL.so",
-            "/system/vendor/lib/libOpenCL.so",
-            "/system/vendor/lib64/libOpenCL.so",
-            "/system/vendor/lib64/libGLES_mali.so",
-            "/system/vendor/lib/libPVROCL.so",
-            "/data/data/org.pocl.libs/files/lib/libpocl.so",
-    };
-    for (const auto &path : default_so_paths) {
-        openCLHndl = dlopen(path, RTLD_NOW);
-        if (openCLHndl != NULL) break;
-    }
-    if (openCLHndl == NULL) {
-        return_str << "ERROR: failed to link OpenCL Library.\n";
-        return (*env).NewStringUTF(return_str.str().c_str());
-    }
-    typedef void (*func_ptr_t)(void);
-
-    int (*myclGetPlatformIDs)(cl_uint, cl_platform_id *, cl_uint *);
-
-    *(void **) (&myclGetPlatformIDs) = dlsym(openCLHndl, "clGetPlatformIDs");
-    cl_platform_id my_platforms[100];
-    cl_uint my_platforms_n = 0;
-    (*myclGetPlatformIDs)(100, my_platforms, &my_platforms_n);
-    return_str << "=== " << my_platforms_n << "OpenCL platform(s) found ===";
-
-    std::vector<std::vector<cl::Device>> devices;
     getDeviceList(devices);
-
     if (PLATFORM_ID >= devices.size()) {
         return_str << "ERROR: Invalid platform id " << PLATFORM_ID
                    << ". Please use the -l option to view platforms and device ids.\n";
@@ -243,144 +230,134 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
 
     populate_ChipConfigMaps();
     exec.exec_device = devices[PLATFORM_ID][DEVICE_ID];
+    exec.exec_platform = platforms[PLATFORM_ID];
+    CL_Execution::getDeviceName(exec.exec_device);
 
-    return_str << "Using Device: " << exec.getExecDeviceName().c_str() << "\n";
-    return_str << "Driver Version: " << exec.getExecDriverVersion().c_str() << "\n";
-
-    ChipConfig cConfig;
     if (USE_CHIP_CONFIG) {
-        return_str << "using chip config:" << exec.getExecDeviceName().c_str() << "\n";
-        cConfig = ChipConfigMaps[exec.getExecDeviceName().c_str()];
+        if (ChipConfigMaps.find(exec.getExecDeviceName().c_str()) == ChipConfigMaps.end()) {
+            cConfig = ChipConfigMaps["default"];
+        } else {
+            cConfig = ChipConfigMaps[exec.getExecDeviceName().c_str()];
+        }
     } else {
-        return_str << "using chip config: default\n";
         cConfig = ChipConfigMaps["default"];
     }
-
-    cl::Context context(exec.exec_device);
-    exec.exec_context = context;
-    cl::CommandQueue queue(exec.exec_context, exec.exec_device);
-    exec.exec_queue = queue;
+    cl_context_properties props[3] = {CL_CONTEXT_PLATFORM,
+                                      (cl_context_properties) exec.exec_platform, 0};
+    exec.exec_context = clCreateContext(
+            props, 1, &(exec.exec_device), NULL, NULL, &err);
+    exec.exec_queue = clCreateCommandQueue(
+            exec.exec_context, exec.exec_device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
 
     std::string test_config_string = jstringToString(env, config_string);
     std::string test_kernel_String = jstringToString(env, kernel_string);
-
     TestConfig cfg = parse_config(test_config_string, return_str);
 
-    err = exec.compile_kernel_string(test_kernel_String, kernel_include.c_str(), return_str);
-    log_cl_err(err);
-
-    // Original Kernel loading code
-//    return_str << "Kernel file: " << kernel_file.c_str() << ", Kernel Include path: "
-//               << kernel_include.c_str() << "\n";
-//    err = exec.compile_kernel(kernel_file.c_str(), kernel_include.c_str());
-//    check_ocl(err);
+    err = exec.compile_kernel_string(test_kernel_String, kernel_include.c_str());
 
     int occupancy = cConfig.occupancy_est;
     int max_local_size = cConfig.max_local_size;
-
     int max_global_size = max_local_size * occupancy;
-    cl::NDRange sglobalND(1), slocalND(1);
-
     err = get_kernels(exec);
-    log_cl_err(err);
+    return_str << "Done ";
 
-    // Actual real stuff starts
-
-    cl::Buffer dga(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE));
-    cl::Buffer dgna(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE));
-    cl::Buffer doutput(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (cfg.output_size));
-    cl::Buffer dresult(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (1));
-    cl::Buffer dshuffled_ids(exec.exec_context, CL_MEM_READ_WRITE,
-                             sizeof(cl_int) * (max_global_size));
-
-    cl_int hga[SIZE], hgna[SIZE], houtput[SIZE];
-    cl_int hresult;
-    cl_int *hshuffled_ids = (cl_int *) malloc(sizeof(cl_int) * max_global_size);
-
-    int *histogram = (int *) malloc(sizeof(int) * cfg.hist_size);
-    return_str << "hist size: " << cfg.hist_size << std::endl;
-
-    for (int i = 0; i < max_global_size; i++) hshuffled_ids[i] = i;
-    for (int i = 0; i < cfg.hist_size; i++) histogram[i] = 0;
-    for (int i = 0; i < SIZE; i++) hga[i] = hgna[i] = houtput[i] = 0;
-
-    log_cl_err(exec.exec_kernels["litmus_test"].setArg(0, dga));
-    log_cl_err(exec.exec_kernels["litmus_test"].setArg(1, dgna));
-    log_cl_err(exec.exec_kernels["litmus_test"].setArg(2, doutput));
-    log_cl_err(exec.exec_kernels["litmus_test"].setArg(3, dshuffled_ids));
-    log_cl_err(exec.exec_kernels["check_outputs"].setArg(0, doutput));
-    log_cl_err(exec.exec_kernels["check_outputs"].setArg(1, dresult));
-
-    auto now = std::chrono::high_resolution_clock::now();
-    long long begin_time, end_time, time;
-    begin_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            now.time_since_epoch()).count();
-
-    for (int i = 0; i < ITERATIONS; i++) {
-        // set up ids
-        size_t local_size = 256; //(size_t) rand() % max_local_size + cConfig.min_local_size;
-        size_t global_size = occupancy * local_size;
-
-        cl::NDRange globalND(global_size), localND(local_size);
-        for (int j = 0; j < global_size; j++) {
-            hshuffled_ids[j] = j;
-        }
-
-        // Random Shuffle
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(hshuffled_ids, &hshuffled_ids[global_size - 1], g);
-        err = exec.exec_queue.enqueueWriteBuffer(dshuffled_ids, CL_TRUE, 0,
-                                                 sizeof(cl_int) * (global_size), hshuffled_ids);
-        log_cl_err(err);
-        err = exec.exec_queue.enqueueWriteBuffer(dga, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hga);
-        log_cl_err(err);
-        err = exec.exec_queue.enqueueWriteBuffer(dgna, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hgna);
-        log_cl_err(err);
-        err = exec.exec_queue.enqueueWriteBuffer(doutput, CL_TRUE, 0,
-                                                 sizeof(cl_int) * (cfg.output_size), houtput);
-        log_cl_err(err);
-        err = exec.exec_queue.finish();
-        log_cl_err(err);
-        err = exec.exec_queue.enqueueNDRangeKernel(exec.exec_kernels["litmus_test"], cl::NullRange,
-                                                   globalND, localND);
-        log_cl_err(err);
-        err = exec.exec_queue.finish();
-        log_cl_err(err);
-        err = exec.exec_queue.enqueueNDRangeKernel(exec.exec_kernels["check_outputs"],
-                                                   cl::NullRange, sglobalND, slocalND);
-        log_cl_err(err);
-        err = exec.exec_queue.finish();
-        log_cl_err(err);
-        err = exec.exec_queue.enqueueReadBuffer(dresult, CL_TRUE, 0, sizeof(cl_int) * (1),
-                                                &hresult);
-        log_cl_err(err);
-        histogram[hresult]++;
-    }
-    now = std::chrono::high_resolution_clock::now();
-    end_time = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-    time = end_time - begin_time;
-    float time_float = static_cast< float >(time) / static_cast< float >(NANOSEC);
-
-    return_str << std::endl << "RESULTS: " << std::endl;
-    return_str << "-------------------" << std::endl;
-    for (int i = 0; i < cfg.hist_size; i++) {
-        return_str << cfg.hist_strings[i] << histogram[i] << std::endl;
-    }
-    return_str << std::endl;
-    return_str << "RATES" << std::endl;
-    return_str << "-------------------" << std::endl;
-    return_str << "tests          : " << ITERATIONS << std::endl;
-    return_str << "time (seconds) : " << time_float << std::endl;
-    return_str << "tests/sec      : " << static_cast< float >(ITERATIONS) / time_float << std::endl;
-    return_str << std::endl;
-
-    //free(hga);
-    //free(hgna);
-    //free(houtput);
-    j["device_name"] = nullptr;
-    j["kernel"] = nullptr;
-    j["test_name"] = nullptr;
+//    // Actual real stuff starts
+//
+//    cl::Buffer dga(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE));
+//    cl::Buffer dgna(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE));
+//    cl::Buffer doutput(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (cfg.output_size));
+//    cl::Buffer dresult(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (1));
+//    cl::Buffer dshuffled_ids(exec.exec_context, CL_MEM_READ_WRITE,
+//                             sizeof(cl_int) * (max_global_size));
+//
+//    cl_int hga[SIZE], hgna[SIZE], houtput[SIZE];
+//    cl_int hresult;
+//    cl_int *hshuffled_ids = (cl_int *) malloc(sizeof(cl_int) * max_global_size);
+//
+//    int *histogram = (int *) malloc(sizeof(int) * cfg.hist_size);
+//    return_str << "hist size: " << cfg.hist_size << std::endl;
+//
+//    for (int i = 0; i < max_global_size; i++) hshuffled_ids[i] = i;
+//    for (int i = 0; i < cfg.hist_size; i++) histogram[i] = 0;
+//    for (int i = 0; i < SIZE; i++) hga[i] = hgna[i] = houtput[i] = 0;
+//
+//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(0, dga));
+//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(1, dgna));
+//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(2, doutput));
+//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(3, dshuffled_ids));
+//    log_cl_err(exec.exec_kernels["check_outputs"].setArg(0, doutput));
+//    log_cl_err(exec.exec_kernels["check_outputs"].setArg(1, dresult));
+//
+//    auto now = std::chrono::high_resolution_clock::now();
+//    long long begin_time, end_time, time;
+//    begin_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+//            now.time_since_epoch()).count();
+//
+//    for (int i = 0; i < ITERATIONS; i++) {
+//        // set up ids
+//        size_t local_size = 256; //(size_t) rand() % max_local_size + cConfig.min_local_size;
+//        size_t global_size = occupancy * local_size;
+//
+//        cl::NDRange globalND(global_size), localND(local_size);
+//        for (int j = 0; j < global_size; j++) {
+//            hshuffled_ids[j] = j;
+//        }
+//
+//        // Random Shuffle
+//        std::random_device rd;
+//        std::mt19937 g(rd());
+//        std::shuffle(hshuffled_ids, &hshuffled_ids[global_size - 1], g);
+//        err = exec.exec_queue.enqueueWriteBuffer(dshuffled_ids, CL_TRUE, 0,
+//                                                 sizeof(cl_int) * (global_size), hshuffled_ids);
+//        log_cl_err(err);
+//        err = exec.exec_queue.enqueueWriteBuffer(dga, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hga);
+//        log_cl_err(err);
+//        err = exec.exec_queue.enqueueWriteBuffer(dgna, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hgna);
+//        log_cl_err(err);
+//        err = exec.exec_queue.enqueueWriteBuffer(doutput, CL_TRUE, 0,
+//                                                 sizeof(cl_int) * (cfg.output_size), houtput);
+//        log_cl_err(err);
+//        err = exec.exec_queue.finish();
+//        log_cl_err(err);
+//        err = exec.exec_queue.enqueueNDRangeKernel(exec.exec_kernels["litmus_test"], cl::NullRange,
+//                                                   globalND, localND);
+//        log_cl_err(err);
+//        err = exec.exec_queue.finish();
+//        log_cl_err(err);
+//        err = exec.exec_queue.enqueueNDRangeKernel(exec.exec_kernels["check_outputs"],
+//                                                   cl::NullRange, sglobalND, slocalND);
+//        log_cl_err(err);
+//        err = exec.exec_queue.finish();
+//        log_cl_err(err);
+//        err = exec.exec_queue.enqueueReadBuffer(dresult, CL_TRUE, 0, sizeof(cl_int) * (1),
+//                                                &hresult);
+//        log_cl_err(err);
+//        histogram[hresult]++;
+//    }
+//    now = std::chrono::high_resolution_clock::now();
+//    end_time = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+//    time = end_time - begin_time;
+//    float time_float = static_cast< float >(time) / static_cast< float >(NANOSEC);
+//
+//    return_str << std::endl << "RESULTS: " << std::endl;
+//    return_str << "-------------------" << std::endl;
+//    for (int i = 0; i < cfg.hist_size; i++) {
+//        return_str << cfg.hist_strings[i] << histogram[i] << std::endl;
+//    }
+//    return_str << std::endl;
+//    return_str << "RATES" << std::endl;
+//    return_str << "-------------------" << std::endl;
+//    return_str << "tests          : " << ITERATIONS << std::endl;
+//    return_str << "time (seconds) : " << time_float << std::endl;
+//    return_str << "tests/sec      : " << static_cast< float >(ITERATIONS) / time_float << std::endl;
+//    return_str << std::endl;
+//
+//    //free(hga);
+//    //free(hgna);
+//    //free(houtput);
+//    j["device_name"] = nullptr;
+//    j["kernel"] = nullptr;
+//    j["test_name"] = nullptr;
 
     return env->NewStringUTF(return_str.str().c_str());
 }

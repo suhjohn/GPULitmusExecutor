@@ -1,7 +1,6 @@
 #pragma once
-#define CL_HPP_TARGET_OPENCL_VERSION 200
 
-#include <CL/cl.hpp>
+#include <CL/cl.h>
 #include <map>
 #include <string>
 #include <iostream>
@@ -15,9 +14,7 @@
 #define CL_DEVICE_BOARD_NAME_AMD 0x4038
 #endif
 
-#define check_ocl(err) check_ocl_error(err, __FILE__, __LINE__);
-#define log_cl_err(err) if (err != CL_SUCCESS){ return_str << __FILE__ << ":" << __LINE__ << ": error " << err << std::endl; return env->NewStringUTF(return_str.str().c_str());}
-
+#define check_ocl(err) check_ocl_error(err, __FILE__, __LINE__)
 
 void check_ocl_error(const int e, const char *file, const int line) {
     if (e < 0) {
@@ -26,20 +23,19 @@ void check_ocl_error(const int e, const char *file, const int line) {
     }
 }
 
-
 class CL_Execution {
 public:
-    cl::Device exec_device;
-    cl::Context exec_context;
-    cl::CommandQueue exec_queue;
-    cl::Program exec_program;
-    std::map<std::string, cl::Kernel> exec_kernels;
-    cl::Platform exec_platform;
+    cl_device_id exec_device;
+    cl_context exec_context;
+    cl_command_queue exec_queue;
+    cl_program exec_program;
+    std::map<std::string, cl_kernel> exec_kernels;
+    cl_platform_id exec_platform;
 
 private:
     // For recompiling the kernel with the correct subgroup size
-    const char *cache_kernel_file;
-    const char *cache_kernel_include;
+    const char* cache_kernel_file;
+    const char * cache_kernel_include;
     bool cache_slots;
     bool cache_discovery;
     bool cache_irgl_subgroups;
@@ -48,26 +44,29 @@ private:
 public:
 
     //From IWOCL tutorial (needs attribution)
-    static std::string getDeviceName(const cl::Device &device) {
-        std::string name;
+    static std::string getDeviceName(const cl_device_id& device) {
+        char name[256];
         cl_device_info info = CL_DEVICE_NAME;
 
         // Special case for AMD
+        int err = 0;
+        err = clGetDeviceInfo(device, info, 256, name, NULL);
+        check_ocl(err);
+        std::string ret(name);
 #ifdef CL_DEVICE_BOARD_NAME_AMD
-        device.getInfo(CL_DEVICE_VENDOR, &name);
-        if (strstr(name.c_str(), "Advanced Micro Devices"))
+        if (strstr(ret.c_str(), "Advanced Micro Devices"))
             info = CL_DEVICE_BOARD_NAME_AMD;
 #endif
-
-        device.getInfo(info, &name);
-        return name;
+        return ret;
     }
 
-    static std::string getDriverVersion(const cl::Device &device) {
-        std::string version;
+    static std::string getDriverVersion(const cl_device_id& device) {
+        char version[256];
         cl_device_info info = CL_DRIVER_VERSION;
-        device.getInfo(info, &version);
-        return version;
+        int err = 0;
+        err = clGetDeviceInfo(device, info, 256, version, NULL);
+        check_ocl(err);
+        return std::string(version);
     }
 
     std::string getExecDeviceName() {
@@ -88,42 +87,45 @@ public:
         //if (strstr(name.c_str(), "Advanced Micro Devices"))
         //  info = CL_DEVICE_BOARD_NAME_AMD;
         //#endif
-
-        exec_device.getInfo(info, &ret);
+        clGetDeviceInfo(exec_device, info, sizeof(cl_uint), &ret, NULL);
+        //exec_device.getInfo(info, &ret);
         return ret;
     }
 
     bool is_Nvidia() {
-        std::string buffer;
+        char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = exec_device.getInfo(info, &buffer);
+        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
-        if (buffer.find("NVIDIA Corporation") == std::string::npos) {
+        std::string to_search = buffer;
+        if (to_search.find("NVIDIA Corporation") == std::string::npos) {
             return false;
         }
         return true;
     }
 
     bool is_Intel() {
-        std::string buffer;
+        char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = exec_device.getInfo(info, &buffer);
+        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
-        if (buffer.find("Intel") == std::string::npos) {
+        std::string to_search = buffer;
+        if (to_search.find("Intel") == std::string::npos) {
             return false;
         }
         return true;
     }
 
     bool is_AMD() {
-        std::string buffer;
+        char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = exec_device.getInfo(info, &buffer);
+        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
-        if (buffer.find("Advanced Micro Devices") == std::string::npos) {
+        std::string to_search = buffer;
+        if (to_search.find("Advanced Micro Devices") == std::string::npos) {
             return false;
         }
         return true;
@@ -131,25 +133,26 @@ public:
 
     bool is_ARM() {
         // Tyler TODO
-        std::string buffer;
+        char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = exec_device.getInfo(info, &buffer);
+        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
-        if (buffer.find("ARM") == std::string::npos) {
+        std::string to_search = buffer;
+        if (to_search.find("ARM") == std::string::npos) {
             return false;
         }
         return true;
     }
 
     bool is_ocl2() {
-        std::string buffer;
+        char buffer[256];
         cl_device_info info = CL_DEVICE_VERSION;
         int err = 0;
-        err = exec_device.getInfo(info, &buffer);
+        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
-
-        if (buffer.find("OpenCL 2.") == std::string::npos) {
+        std::string to_search(buffer);
+        if (to_search.find("OpenCL 2.") == std::string::npos) {
             return false;
         }
         return true;
@@ -179,7 +182,7 @@ public:
     }
 
     //From the IWOCL tutorial (needs attribution)
-    std::string loadProgram(const char *input) {
+    std::string loadProgram(const char* input, size_t *len) {
         std::ifstream stream(input);
         if (!stream.is_open()) {
             std::cout << "Cannot open file: " << input << std::endl;
@@ -189,52 +192,60 @@ public:
             exit(1);
         }
 
-        return std::string(
+        std::string ret = std::string(
                 std::istreambuf_iterator<char>(stream),
                 (std::istreambuf_iterator<char>()));
+        *len = ret.size();
+        return ret;
     }
 
     int compile_kernel_string(
-            std::string &kernel_string, const char *kernel_include, std::stringstream &return_str) {
+            std::string &kernel_string,
+            const char *kernel_include) {
 
-        int ret;
-        return_str << "Compile Kernel..." << std::endl;
-//        return_str << std::endl << kernel_string << std::endl;
-        cache_kernel_include = kernel_include;
-        exec_program = cl::Program(exec_context, kernel_string, false, &ret);
-        return_str << ret << std::endl;
+        int ret = CL_SUCCESS;
+        size_t len = kernel_string.length();
+        const char * source_c_str = kernel_string.c_str();
+        exec_program = clCreateProgramWithSource(exec_context, 1, (const char **)& source_c_str,
+                                                 &len, &ret);
+
         std::stringstream options;
         options.setf(std::ios::fixed, std::ios::floatfield);
 
         //set compiler options here, example below
-//        options << "-I" << kernel_include << " ";        // Include the rt_device sources
+        options << "-I" << kernel_include << " ";        // Include the rt_device sources
         options << check_ocl2x();                        // Check to see if we're OpenCL 2.0
         options << get_vendor_option();                  // Check to see if we're OpenCL 2.0
 
         //build the program
-        return_str << "FLAGS: " << options.str() << std::endl;
-        ret = exec_program.build(options.str().c_str());
+//        return_str << "FLAGS: " << options.str() << std::endl;
+        ret = clBuildProgram(exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
+
 
         if (ret != CL_SUCCESS) {
-            return_str << "Build Fail: " << std::endl;
-            return_str << exec_program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(exec_device) << std::endl;
+            char buffer[2048];
+            cl_program_build_info b_info = CL_PROGRAM_BUILD_LOG;
+            clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
+//            return_str << "Build Fail: " << buffer << std::endl;
             return ret;
-
-            // QUESTION: When is this executed?
-//            if (false) dump_program_binary(exec_program);
         }
-        return_str << "Build Success! " << std::endl;
+//        return_str << "Build Success! " << std::endl;
         return ret;
     }
 
     //roughly from IWOCL tutorial (needs attribution)
-    int compile_kernel(const char *kernel_file, const char *kernel_include) {
-
-        cache_kernel_file = kernel_file;
-        cache_kernel_include = kernel_include;
+    int compile_kernel(const char* kernel_file, const char * kernel_include, std::string kernel_defs) {
 
         int ret = CL_SUCCESS;
-        exec_program = cl::Program(exec_context, loadProgram(kernel_file));
+        //exec_program = cl::Program(cl::Context(exec_context), loadProgram(kernel_file), ret);
+        size_t len;
+        std::string  source = (loadProgram(kernel_file, &len));
+        const char * source_c_str = source.c_str();
+
+
+        exec_program = clCreateProgramWithSource(exec_context, 1, (const char **)& source_c_str, &len, &ret);
+
+        check_ocl(ret);
 
         std::stringstream options;
         options.setf(std::ios::fixed, std::ios::floatfield);
@@ -245,24 +256,29 @@ public:
         //Include the rt_device sources
         options << "-I" << kernel_include << " ";
 
+        options <<  kernel_defs;
+
 
         //Check to see if we're OpenCL 2.0
         options << check_ocl2x();
 
-        //Check to see if we're OpenCL 2.0
         options << get_vendor_option();
 
         std::cout << "FLAGS: " << options.str() << std::endl;
 
 
         //build the program
-        ret = exec_program.build(options.str().c_str());
+        //ret = exec_program.build(options.str().c_str());
+        ret = clBuildProgram(exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
+        //check_ocl(ret);
 
         if (ret != CL_SUCCESS) {
-            std::string log = exec_program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(exec_device);
+            char buffer[2048];
+            cl_program_build_info b_info = CL_PROGRAM_BUILD_LOG;
+            clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
+            std::string log(buffer);
             std::cerr << log << std::endl;
-
-            if (false) dump_program_binary(exec_program);
+            //if(false) dump_program_binary(exec_program);
         }
 
         return ret;
@@ -282,47 +298,20 @@ public:
     }
 
     bool intel_subgroups() {
-        std::string buffer;
+        char buffer[256];
         cl_device_info info = CL_DEVICE_EXTENSIONS;
         int err = 0;
-        err = exec_device.getInfo(info, &buffer);
+        clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+        //err = exec_device.getInfo(info, &buffer);
         check_ocl(err);
-        if (buffer.find("cl_intel_subgroups") == std::string::npos) {
+        std::string to_search(buffer);
+        if (to_search.find("cl_intel_subgroups") == std::string::npos) {
             return false;
         }
         return true;
     }
 
-    bool khr_subgroups() {
-        std::string buffer;
-        cl_device_info info = CL_DEVICE_EXTENSIONS;
-        int err = 0;
-        err = exec_device.getInfo(info, &buffer);
-        check_ocl(err);
-        if (buffer.find("cl_khr_subgroups") == std::string::npos) {
-            return false;
-        }
-        return true;
-    }
-
-    bool at_least_cl21() {
-        std::string buffer;
-        cl_device_info info = CL_DEVICE_VERSION;
-        int err = 0;
-        err = exec_device.getInfo(info, &buffer);
-        check_ocl(err);
-
-        // Check if its not 1.0, 1.1, 1.2, 2.0
-        if (buffer.find("OpenCL 1.0") != std::string::npos ||
-            buffer.find("OpenCL 1.1") != std::string::npos ||
-            buffer.find("OpenCL 1.2") != std::string::npos ||
-            buffer.find("OpenCL 2.0") != std::string::npos) {
-            return false;
-        }
-        return true;
-    }
-
-    int get_compute_units(const char *kernel_name) {
+    int get_compute_units(const char* kernel_name) {
         return get_SMs();
     }
 
@@ -332,9 +321,7 @@ public:
         return s;
     }
 
-    size_t
-    kernel_residency_approx(const char *kernel_name, const int block_size, const bool discovery,
-                            int given = 0) {
+    size_t kernel_residency_approx(const char *kernel_name, const int block_size, const bool discovery, int given = 0) {
         /* not portable, not guaranteed to work */
 
         /* generous upper bound. Maybe some GPUs might be higher under some configs?*/
@@ -342,8 +329,7 @@ public:
             return 512;
         }
         if (given != 0) {
-            printf("RESIDENCY: WARNING: using a given occupancy of %d. This will not be portable!",
-                   given);
+            printf("RESIDENCY: WARNING: using a given occupancy of %d. This will not be portable!", given);
             return given;
         }
 
@@ -362,31 +348,24 @@ public:
            If you can determine a better occupancy by hand, please pass it in as an arg.
         */
         if (is_AMD()) {
-            vendor_adjusted =
-                    (compute_units * 12) / 7;  // This is the ratio for R9, R7 allows more.
-        } else if (is_Nvidia()) {
+            vendor_adjusted = (compute_units * 12) / 7;  // This is the ratio for R9, R7 allows more.
+        }
+        else if (is_Nvidia()) {
             vendor_adjusted = compute_units; // Maxwell does 2x, but Quadro kepler is 1x.
-        } else if (is_Intel()) {
+        }
+        else if (is_Intel()) {
             vendor_adjusted = (compute_units + 1) / 8; // Works for iris and HD 5500
-        } else if (is_ARM()) {
+        }
+        else if (is_ARM()) {
             vendor_adjusted = compute_units; // Works for t628 mali GPUs
-        } else {
+        }
+        else {
             printf("RESIDENCY: WARNING: unrecognized vendor, simply guessing residency is compute units\n");
             vendor_adjusted = compute_units;
         }
 
         printf("RESIDENCY: returning occupancy of %d\n", my_max(vendor_adjusted, 1) * factor);
-        return my_max(vendor_adjusted, 1) * factor;
+        return my_max(vendor_adjusted,1) * factor;
     }
 
-    void check_kernel_wg_sizes(cl::Kernel k, std::string name, int wg_size) {
-        size_t ret_val = 0;
-        clGetKernelWorkGroupInfo(k(), exec_device(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t),
-                                 &ret_val, NULL);
-        if (ret_val < wg_size) {
-            std::cout << "WG_SIZE_ERROR: kernel " << name
-                      << " can only have a workgroup size up to " << ret_val << std::endl;
-            std::cout << "bug a size of " << wg_size << " was requested" << std::endl;
-        }
-    }
 };

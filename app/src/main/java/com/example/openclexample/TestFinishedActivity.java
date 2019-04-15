@@ -42,6 +42,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
         String kernelFile = "tests/MP/kernel.cl";
         String configFile = "tests/MP/config.txt";
         String result = executeTest(kernelFile, configFile);
+        Log.i("onCreate", result);
         try {
             jsonObj = new JSONObject(result);
         } catch (JSONException e) {
