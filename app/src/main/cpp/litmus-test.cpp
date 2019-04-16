@@ -21,6 +21,7 @@
 #include <random>
 #include <nlohmann/json.hpp>
 #include "cl_execution.h"
+#include "droidcl.h"
 
 using json = nlohmann::json;
 
@@ -125,23 +126,23 @@ TestConfig parse_config(const std::string &config_str) {
 
 //From IWOCL tutorial (needs attribution)
 unsigned getDeviceList(std::vector<std::vector<cl_device_id>> &devices) {
-    // Get list of platforms
+    DroidCL droidCL;
     int err = 0;
     cl_uint num_plats = 0;
-    err = clGetPlatformIDs(0, NULL, &num_plats);
+    err = droidCL.clGetPlatformIDs(0, NULL, &num_plats);
     check_ocl(err);
     platforms = (cl_platform_id *) malloc(sizeof(cl_platform_id) * num_plats);
-    clGetPlatformIDs(num_plats, platforms, NULL);
+    droidCL.clGetPlatformIDs(num_plats, platforms, NULL);
     check_ocl(err);
 
     // Enumerate devices
     for (unsigned int i = 0; i < num_plats; i++) {
         //std::vector<cl::Device> plat_devices;
         cl_uint num_devices = 0;
-        err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
+        err = droidCL.clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
         check_ocl(err);
         cl_device_id *plat_devices = (cl_device_id *) malloc(sizeof(cl_device_id) * num_devices);
-        clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices, plat_devices, NULL);
+        droidCL.clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices, plat_devices, NULL);
 
 
         //platforms[i].getDevices(CL_DEVICE_TYPE_ALL, &plat_devices);

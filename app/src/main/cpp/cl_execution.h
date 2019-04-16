@@ -8,6 +8,7 @@
 #include <fstream>
 #include <assert.h>
 #include <limits.h>
+#include "droidcl.h"
 
 //From IWOCL tutorial (needs attribution)
 #ifndef CL_DEVICE_BOARD_NAME_AMD
@@ -22,8 +23,6 @@ void check_ocl_error(const int e, const char *file, const int line) {
         exit(1);
     }
 }
-
-
 
 
 class CL_Execution {
@@ -48,12 +47,13 @@ public:
 
     //From IWOCL tutorial (needs attribution)
     static std::string getDeviceName(const cl_device_id &device) {
+        DroidCL droidCL;
         char name[256];
         cl_device_info info = CL_DEVICE_NAME;
 
         // Special case for AMD
         int err = 0;
-        err = clGetDeviceInfo(device, info, 256, name, NULL);
+        err = droidCL.clGetDeviceInfo(device, info, 256, name, NULL);
         check_ocl(err);
         std::string ret(name);
 #ifdef CL_DEVICE_BOARD_NAME_AMD
@@ -64,10 +64,11 @@ public:
     }
 
     static std::string getDriverVersion(const cl_device_id &device) {
+        DroidCL droidCL;
         char version[256];
         cl_device_info info = CL_DRIVER_VERSION;
         int err = 0;
-        err = clGetDeviceInfo(device, info, 256, version, NULL);
+        err = droidCL.clGetDeviceInfo(device, info, 256, version, NULL);
         check_ocl(err);
         return std::string(version);
     }
@@ -81,6 +82,7 @@ public:
     }
 
     int get_SMs() {
+        DroidCL droidCL;
         cl_uint ret;
         cl_device_info info = CL_DEVICE_MAX_COMPUTE_UNITS;
 
@@ -90,16 +92,17 @@ public:
         //if (strstr(name.c_str(), "Advanced Micro Devices"))
         //  info = CL_DEVICE_BOARD_NAME_AMD;
         //#endif
-        clGetDeviceInfo(exec_device, info, sizeof(cl_uint), &ret, NULL);
+        droidCL.clGetDeviceInfo(exec_device, info, sizeof(cl_uint), &ret, NULL);
         //exec_device.getInfo(info, &ret);
         return ret;
     }
 
     bool is_Nvidia() {
+        DroidCL droidCL;
         char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+        err = droidCL.clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
         std::string to_search = buffer;
         if (to_search.find("NVIDIA Corporation") == std::string::npos) {
@@ -109,10 +112,11 @@ public:
     }
 
     bool is_Intel() {
+        DroidCL droidCL;
         char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+        err = droidCL.clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
         std::string to_search = buffer;
         if (to_search.find("Intel") == std::string::npos) {
@@ -122,10 +126,11 @@ public:
     }
 
     bool is_AMD() {
+        DroidCL droidCL;
         char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+        err = droidCL.clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
         std::string to_search = buffer;
         if (to_search.find("Advanced Micro Devices") == std::string::npos) {
@@ -135,11 +140,12 @@ public:
     }
 
     bool is_ARM() {
+        DroidCL droidCL;
         // Tyler TODO
         char buffer[256];
         cl_device_info info = CL_DEVICE_VENDOR;
         int err = 0;
-        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+        err = droidCL.clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
         std::string to_search = buffer;
         if (to_search.find("ARM") == std::string::npos) {
@@ -149,10 +155,11 @@ public:
     }
 
     bool is_ocl2() {
+        DroidCL droidCL;
         char buffer[256];
         cl_device_info info = CL_DEVICE_VERSION;
         int err = 0;
-        err = clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+        err = droidCL.clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
         check_ocl(err);
         std::string to_search(buffer);
         if (to_search.find("OpenCL 2.") == std::string::npos) {
@@ -206,11 +213,11 @@ public:
             std::string &kernel_string,
             const char *kernel_include,
             std::string kernel_defs) {
-
+        DroidCL droidCL;
         int ret = CL_SUCCESS;
         size_t len = kernel_string.size();
         const char *source_c_str = kernel_string.c_str();
-        exec_program = clCreateProgramWithSource(
+        exec_program = droidCL.clCreateProgramWithSource(
                 exec_context, 1, (const char **) &source_c_str, &len, &ret);
 
         check_ocl(ret);
@@ -226,13 +233,13 @@ public:
         options << get_vendor_option();
 
         //build the program
-        ret = clBuildProgram(
+        ret = droidCL.clBuildProgram(
                 exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
 
         if (ret != CL_SUCCESS) {
             char buffer[2048];
             cl_program_build_info b_info = CL_PROGRAM_BUILD_LOG;
-            clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
+            droidCL.clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
             return ret;
         }
         return ret;
