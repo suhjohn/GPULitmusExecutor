@@ -22,11 +22,22 @@
 #include <nlohmann/json.hpp>
 #include "cl_execution.h"
 
+using json = nlohmann::json;
+
 #define SIZE 1024
 #define NANOSEC 1000000000LL
 
-// for convenience
-using json = nlohmann::json;
+#define handle_cl_error(env, err) handle_error(env, err, __FILE__, __LINE__)
+
+jstring handle_error(JNIEnv *env, const int e, const char *file, const int line) {
+    if (e < 0) {
+        std::stringstream error_string;
+        json error_response;
+        error_string << file << ":" << line << ": error " << e << std::endl;
+        error_response["error"] = error_string.str();
+        return env->NewStringUTF(error_response.dump().c_str());
+    }
+}
 
 /*cl_device_id device_id = NULL;
 cl_context context = NULL;
@@ -86,16 +97,15 @@ void populate_ChipConfigMaps() {
 }
 
 
-TestConfig parse_config(const std::string &config_str, std::stringstream &return_str) {
+TestConfig parse_config(const std::string &config_str) {
     std::stringstream config_stream(config_str);
     TestConfig ret;
     std::string title, ignore;
 
     std::getline(config_stream, title);
-    return_str << "parsing config for test: " << title << std::endl;
-    std::getline(config_stream, ignore);
-    std::getline(config_stream, ignore);
 
+    std::getline(config_stream, ignore);
+    std::getline(config_stream, ignore);
     ret.hist_size = std::stoi(ignore);
 
     //infile >> ret.hist_size;
@@ -103,14 +113,12 @@ TestConfig parse_config(const std::string &config_str, std::stringstream &return
         std::string out_desc;
         std::getline(config_stream, out_desc);
         ret.hist_strings.push_back(out_desc);
-        return_str << "parsed line: " << out_desc << std::endl;
     }
     ret.hist_strings.push_back("errors: ");
     ret.hist_size++;
     std::getline(config_stream, ignore); // "num outputs"
     std::getline(config_stream, ignore);
     ret.output_size = std::stoi(ignore);
-    return_str << "output size: " << ret.output_size << std::endl;
     return ret;
 }
 
@@ -150,12 +158,16 @@ cl_int get_kernels(CL_Execution &exec) {
 
     cl_int ret = CL_SUCCESS;
 
-    exec.exec_kernels["litmus_test"] = clCreateKernel(exec.exec_program, "litmus_test", &ret);
+    exec.exec_kernels["litmus_test"] = clCreateKernel(
+            exec.exec_program, "litmus_test", &ret);
+    check_ocl(ret);
 
     //Consider doing this for robustness
     //exec.check_kernel_wg_sizes(exec.exec_kernels["bfs_init"], "bfs_init", TB_SIZE);
 
-    exec.exec_kernels["check_outputs"] = clCreateKernel(exec.exec_program, "check_outputs", &ret);
+    exec.exec_kernels["check_outputs"] = clCreateKernel(
+            exec.exec_program, "check_outputs", &ret);
+    check_ocl(ret);
 
     //Consider doing this for robustness
     //exec.check_kernel_wg_sizes(exec.exec_kernels["bfs_kernel"], "bfs_kernel", TB_SIZE);
@@ -198,11 +210,11 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
                                                                       jstring config_string,
                                                                       jstring kernel_string,
                                                                       jint iteration) {
-    json j;
+    ChipConfig cConfig;
     CL_Execution exec;
+    json j;
     std::string opts;
     std::stringstream return_str;
-    ChipConfig cConfig;
     std::vector<std::vector<cl_device_id>> devices;
     int err = 0;
 
@@ -234,7 +246,8 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     CL_Execution::getDeviceName(exec.exec_device);
 
     if (USE_CHIP_CONFIG) {
-        if (ChipConfigMaps.find(exec.getExecDeviceName().c_str()) == ChipConfigMaps.end()) {
+        if (ChipConfigMaps.find(exec.getExecDeviceName().c_str())
+            == ChipConfigMaps.end()) {
             cConfig = ChipConfigMaps["default"];
         } else {
             cConfig = ChipConfigMaps[exec.getExecDeviceName().c_str()];
@@ -242,24 +255,47 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     } else {
         cConfig = ChipConfigMaps["default"];
     }
-    cl_context_properties props[3] = {CL_CONTEXT_PLATFORM,
-                                      (cl_context_properties) exec.exec_platform, 0};
+    cl_context_properties props[3] = {
+            CL_CONTEXT_PLATFORM, (cl_context_properties) exec.exec_platform, 0};
     exec.exec_context = clCreateContext(
             props, 1, &(exec.exec_device), NULL, NULL, &err);
+    if (err < 0) {
+        return_str << "[clCreateContext] ERROR: " << err;
+        return env->NewStringUTF(return_str.str().c_str());
+    }
+//    handle_cl_error(env, err);
     exec.exec_queue = clCreateCommandQueue(
             exec.exec_context, exec.exec_device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
+    if (err < 0) {
+        return_str << "[clCreateCommandQueue] ERROR: " << err;
+        return env->NewStringUTF(return_str.str().c_str());
+    }
+//    handle_cl_error(env, err);
 
     std::string test_config_string = jstringToString(env, config_string);
-    std::string test_kernel_String = jstringToString(env, kernel_string);
-    TestConfig cfg = parse_config(test_config_string, return_str);
+    std::string test_kernel_string = jstringToString(env, kernel_string);
+    TestConfig cfg = parse_config(test_config_string);
 
-    err = exec.compile_kernel_string(test_kernel_String, kernel_include.c_str());
-
-    int occupancy = cConfig.occupancy_est;
-    int max_local_size = cConfig.max_local_size;
-    int max_global_size = max_local_size * occupancy;
-    err = get_kernels(exec);
-    return_str << "Done ";
+//    CHECK CODE
+    return_str << "---- Kernel ----\n" << test_kernel_string;
+//    return env->NewStringUTF(return_str.str().c_str());
+    err = exec.compile_kernel_string(test_kernel_string, kernel_include.c_str(), opts);
+    if (err < 0) {
+        return_str << "[exec.compile_kernel_string] ERROR: " << err;
+        return env->NewStringUTF(return_str.str().c_str());
+    }
+////    handle_cl_error(env, err);
+//
+//    int occupancy = cConfig.occupancy_est;
+//    int max_local_size = cConfig.max_local_size;
+//    int max_global_size = max_local_size * occupancy;
+//
+//    err = get_kernels(exec);
+//    if (err < 0) {
+//        return_str << "[get_kernels] ERROR: " << err;
+//        return env->NewStringUTF(return_str.str().c_str());
+//    }
+//    handle_cl_error(env, err);
 
 //    // Actual real stuff starts
 //
