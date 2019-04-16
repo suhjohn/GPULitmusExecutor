@@ -37,6 +37,7 @@ jstring handle_error(JNIEnv *env, const int e, const char *file, const int line)
         error_response["error"] = error_string.str();
         return env->NewStringUTF(error_response.dump().c_str());
     }
+    return env->NewStringUTF("");
 }
 
 /*cl_device_id device_id = NULL;
@@ -212,7 +213,7 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
                                                                       jint iteration) {
     ChipConfig cConfig;
     CL_Execution exec;
-    json j;
+    json response;
     std::string opts;
     std::stringstream return_str;
     std::vector<std::vector<cl_device_id>> devices;
@@ -259,143 +260,246 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
             CL_CONTEXT_PLATFORM, (cl_context_properties) exec.exec_platform, 0};
     exec.exec_context = clCreateContext(
             props, 1, &(exec.exec_device), NULL, NULL, &err);
-    if (err < 0) {
-        return_str << "[clCreateContext] ERROR: " << err;
-        return env->NewStringUTF(return_str.str().c_str());
-    }
-//    handle_cl_error(env, err);
+    handle_cl_error(env, err);
+
     exec.exec_queue = clCreateCommandQueue(
             exec.exec_context, exec.exec_device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
-    if (err < 0) {
-        return_str << "[clCreateCommandQueue] ERROR: " << err;
-        return env->NewStringUTF(return_str.str().c_str());
-    }
-//    handle_cl_error(env, err);
+    handle_cl_error(env, err);
 
     std::string test_config_string = jstringToString(env, config_string);
     std::string test_kernel_string = jstringToString(env, kernel_string);
     TestConfig cfg = parse_config(test_config_string);
 
-//    CHECK CODE
-    return_str << "---- Kernel ----\n" << test_kernel_string;
-//    return env->NewStringUTF(return_str.str().c_str());
     err = exec.compile_kernel_string(test_kernel_string, kernel_include.c_str(), opts);
     if (err < 0) {
-        return_str << "[exec.compile_kernel_string] ERROR: " << err;
+        char buffer[2048];
+        clGetProgramBuildInfo(
+                exec.exec_program, exec.exec_device, CL_PROGRAM_BUILD_LOG, 2048, buffer, NULL);
+        return_str << "[exec.compile_kernel_string] ERROR: " << err << std::endl;
+        return_str << buffer << std::endl;
         return env->NewStringUTF(return_str.str().c_str());
     }
-////    handle_cl_error(env, err);
-//
-//    int occupancy = cConfig.occupancy_est;
-//    int max_local_size = cConfig.max_local_size;
-//    int max_global_size = max_local_size * occupancy;
-//
-//    err = get_kernels(exec);
-//    if (err < 0) {
-//        return_str << "[get_kernels] ERROR: " << err;
-//        return env->NewStringUTF(return_str.str().c_str());
-//    }
-//    handle_cl_error(env, err);
 
-//    // Actual real stuff starts
-//
-//    cl::Buffer dga(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE));
-//    cl::Buffer dgna(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE));
-//    cl::Buffer doutput(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (cfg.output_size));
-//    cl::Buffer dresult(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (1));
-//    cl::Buffer dshuffled_ids(exec.exec_context, CL_MEM_READ_WRITE,
-//                             sizeof(cl_int) * (max_global_size));
-//
-//    cl_int hga[SIZE], hgna[SIZE], houtput[SIZE];
-//    cl_int hresult;
-//    cl_int *hshuffled_ids = (cl_int *) malloc(sizeof(cl_int) * max_global_size);
-//
-//    int *histogram = (int *) malloc(sizeof(int) * cfg.hist_size);
-//    return_str << "hist size: " << cfg.hist_size << std::endl;
-//
-//    for (int i = 0; i < max_global_size; i++) hshuffled_ids[i] = i;
-//    for (int i = 0; i < cfg.hist_size; i++) histogram[i] = 0;
-//    for (int i = 0; i < SIZE; i++) hga[i] = hgna[i] = houtput[i] = 0;
-//
-//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(0, dga));
-//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(1, dgna));
-//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(2, doutput));
-//    log_cl_err(exec.exec_kernels["litmus_test"].setArg(3, dshuffled_ids));
-//    log_cl_err(exec.exec_kernels["check_outputs"].setArg(0, doutput));
-//    log_cl_err(exec.exec_kernels["check_outputs"].setArg(1, dresult));
-//
-//    auto now = std::chrono::high_resolution_clock::now();
-//    long long begin_time, end_time, time;
-//    begin_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-//            now.time_since_epoch()).count();
-//
-//    for (int i = 0; i < ITERATIONS; i++) {
-//        // set up ids
-//        size_t local_size = 256; //(size_t) rand() % max_local_size + cConfig.min_local_size;
-//        size_t global_size = occupancy * local_size;
-//
-//        cl::NDRange globalND(global_size), localND(local_size);
-//        for (int j = 0; j < global_size; j++) {
-//            hshuffled_ids[j] = j;
-//        }
-//
-//        // Random Shuffle
-//        std::random_device rd;
-//        std::mt19937 g(rd());
-//        std::shuffle(hshuffled_ids, &hshuffled_ids[global_size - 1], g);
-//        err = exec.exec_queue.enqueueWriteBuffer(dshuffled_ids, CL_TRUE, 0,
-//                                                 sizeof(cl_int) * (global_size), hshuffled_ids);
-//        log_cl_err(err);
-//        err = exec.exec_queue.enqueueWriteBuffer(dga, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hga);
-//        log_cl_err(err);
-//        err = exec.exec_queue.enqueueWriteBuffer(dgna, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hgna);
-//        log_cl_err(err);
-//        err = exec.exec_queue.enqueueWriteBuffer(doutput, CL_TRUE, 0,
-//                                                 sizeof(cl_int) * (cfg.output_size), houtput);
-//        log_cl_err(err);
-//        err = exec.exec_queue.finish();
-//        log_cl_err(err);
-//        err = exec.exec_queue.enqueueNDRangeKernel(exec.exec_kernels["litmus_test"], cl::NullRange,
-//                                                   globalND, localND);
-//        log_cl_err(err);
-//        err = exec.exec_queue.finish();
-//        log_cl_err(err);
-//        err = exec.exec_queue.enqueueNDRangeKernel(exec.exec_kernels["check_outputs"],
-//                                                   cl::NullRange, sglobalND, slocalND);
-//        log_cl_err(err);
-//        err = exec.exec_queue.finish();
-//        log_cl_err(err);
-//        err = exec.exec_queue.enqueueReadBuffer(dresult, CL_TRUE, 0, sizeof(cl_int) * (1),
-//                                                &hresult);
-//        log_cl_err(err);
-//        histogram[hresult]++;
-//    }
-//    now = std::chrono::high_resolution_clock::now();
-//    end_time = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-//    time = end_time - begin_time;
-//    float time_float = static_cast< float >(time) / static_cast< float >(NANOSEC);
-//
-//    return_str << std::endl << "RESULTS: " << std::endl;
-//    return_str << "-------------------" << std::endl;
-//    for (int i = 0; i < cfg.hist_size; i++) {
-//        return_str << cfg.hist_strings[i] << histogram[i] << std::endl;
-//    }
-//    return_str << std::endl;
-//    return_str << "RATES" << std::endl;
-//    return_str << "-------------------" << std::endl;
-//    return_str << "tests          : " << ITERATIONS << std::endl;
-//    return_str << "time (seconds) : " << time_float << std::endl;
-//    return_str << "tests/sec      : " << static_cast< float >(ITERATIONS) / time_float << std::endl;
-//    return_str << std::endl;
-//
-//    //free(hga);
-//    //free(hgna);
-//    //free(houtput);
-//    j["device_name"] = nullptr;
-//    j["kernel"] = nullptr;
-//    j["test_name"] = nullptr;
+    int occupancy = cConfig.occupancy_est;
+    int max_local_size = cConfig.max_local_size;
+    int max_global_size = max_local_size * occupancy;
 
-    return env->NewStringUTF(return_str.str().c_str());
+    err = get_kernels(exec);
+    handle_cl_error(env, err);
+
+    // Actual real stuff starts
+
+
+    cl_mem dga = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE), NULL, &err);
+    check_ocl(err);
+    cl_mem dgna = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE), NULL, &err);
+    check_ocl(err);
+    cl_mem doutput = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * ((cfg.output_size)), NULL, &err);
+    check_ocl(err);
+    cl_mem dresult = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (1), NULL, &err);
+    check_ocl(err);
+    cl_mem dshuffled_ids = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (max_global_size), NULL, &err);
+    check_ocl(err);
+    cl_mem dscratchpad = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (512), NULL, &err);
+    check_ocl(err);
+    cl_int dwarp_size = 32;
+
+    cl_int hga[SIZE], hgna[SIZE], houtput[SIZE];
+    cl_int hresult;
+    cl_int *hshuffled_ids = (cl_int *)malloc(sizeof(cl_int) * max_global_size);
+
+    std::cout << "hist size: " << cfg.hist_size << std::endl;
+
+    for (int i = 0; i < max_global_size; i++)
+    {
+        hshuffled_ids[i] = i;
+    }
+
+    for (int i = 0; i < SIZE; i++)
+    {
+        hga[i] = hgna[i] = houtput[i] = 0;
+    }
+
+    // cl_int scratch_location = 128;
+    // cl_int x_y_distance = 128;
+
+    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 0, sizeof(cl_mem), &dga));
+    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 1, sizeof(cl_mem), &dgna));
+    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 2, sizeof(cl_mem), &doutput));
+    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 3, sizeof(cl_mem), &dshuffled_ids));
+    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 4, sizeof(cl_mem), &dscratchpad));
+    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 7, sizeof(cl_int), &dwarp_size));
+
+    check_ocl(clSetKernelArg(exec.exec_kernels["check_outputs"], 0, sizeof(cl_mem), &doutput));
+    check_ocl(clSetKernelArg(exec.exec_kernels["check_outputs"], 1, sizeof(cl_mem), &dresult));
+
+    auto now = std::chrono::high_resolution_clock::now();
+    long long begin_time, end_time, time;
+    begin_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            now.time_since_epoch()).count();
+
+    int *shuffled_wg_order = (int *) malloc(occupancy * sizeof(int));
+    int *temp_id_ordering = (int *)malloc(max_global_size*sizeof(int));
+    int *shuffled_warp_order = (int *) malloc((max_local_size/dwarp_size) * sizeof(int));
+
+    // For loop over x_y_dist between 2 and 512 incrementing by two
+    // For loop over scrach_location between 2 and 512 incrementing by two
+    for (int dist = 65; dist <= 512; dist += 32)
+    {
+        cl_int x_y_distance = dist;
+        for (int location = 65; location <= 512; location += 32)
+        {
+            cl_int scratch_location = location;
+            for (int offset = 0; offset < 2; offset++)
+            {
+                int *histogram = (int *)malloc(sizeof(int) * cfg.hist_size);
+                for (int i = 0; i < cfg.hist_size; i++)
+                {
+                    histogram[i] = 0;
+                }
+
+                for (int i = 0; i < ITERATIONS; i++)
+                {
+                    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 5, sizeof(cl_int), &scratch_location));
+                    cl_int to_pass = x_y_distance + offset;
+                    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 6, sizeof(cl_int), &to_pass));
+
+                    // set up ids
+                    // mod by zero, if max local size is same and min
+                    int local_size = (rand() % (max_local_size - cConfig.min_local_size)) + cConfig.min_local_size;
+                    int global_size = occupancy * local_size;
+                    int wg_count = global_size / local_size;
+                    int warp_size = dwarp_size; // add to chip config before amd testing
+                    int warps_per_wg = local_size / warp_size;
+                    int remainder_threads = local_size % warp_size;
+
+                    for (int j = 0; j < global_size; j++)
+                    {
+                        hshuffled_ids[j] = i;
+                    }
+
+                    // id shuffle
+                    for (int i = 0; i < wg_count; i++)
+                    {
+                        shuffled_wg_order[i] = i;
+                    }
+                    std::random_shuffle(shuffled_wg_order, &shuffled_wg_order[wg_count]); // random_shuffle not end inclusive
+
+                    for (int i = 0; i < global_size; i++)
+                    {
+                        temp_id_ordering[i] = i;
+                    }
+
+                    for (int i = 0; i < wg_count; i++)
+                    {
+                        for (int j = 0; j < warps_per_wg; j++)
+                        {
+                            std::random_shuffle(&temp_id_ordering[i * local_size + j * warp_size], &temp_id_ordering[i * local_size + (j + 1) * warp_size]);
+                        }
+                    }
+                    for (int i = 0; i < wg_count; i++)
+                    {
+
+                        for (int x = 0; x < warps_per_wg; x++)
+                        {
+                            shuffled_warp_order[x] = x;
+                        }
+                        std::random_shuffle(shuffled_warp_order, &shuffled_warp_order[warps_per_wg]);
+
+                        for (int j = 0; j < warps_per_wg; j++)
+                        {
+                            for (int k = 0; k < warp_size; k++)
+                            {
+                                hshuffled_ids[i * local_size + j * warp_size + k] = temp_id_ordering[shuffled_wg_order[i] * local_size + shuffled_warp_order[j] * warp_size + k];
+                            }
+                        }
+
+                        if (remainder_threads != 0)
+                        {
+                            for (int y = 0; y < remainder_threads; y++)
+                            {
+                                hshuffled_ids[i * local_size + (warps_per_wg + 1) * warp_size + y] = temp_id_ordering[shuffled_wg_order[i] * local_size + (warps_per_wg + 1) * warp_size + y];
+                            }
+                        }
+                    }
+
+                    err = clEnqueueWriteBuffer(exec.exec_queue, dshuffled_ids, CL_TRUE, 0, sizeof(cl_int) * (global_size), hshuffled_ids, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    err = clEnqueueWriteBuffer(exec.exec_queue, dga, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hga, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    err = clEnqueueWriteBuffer(exec.exec_queue, dgna, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hgna, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    err = clEnqueueWriteBuffer(exec.exec_queue, doutput, CL_TRUE, 0, sizeof(cl_int) * (cfg.output_size), houtput, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    err = clFinish(exec.exec_queue);
+                    check_ocl(err);
+
+                    const size_t global_size_t = global_size;
+                    const size_t local_size_t = local_size;
+                    err = clEnqueueNDRangeKernel(exec.exec_queue, exec.exec_kernels["litmus_test"], 1, NULL, &global_size_t, &local_size_t, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    err = clFinish(exec.exec_queue);
+                    check_ocl(err);
+
+                    const size_t global_size_t2 = 1;
+                    const size_t local_size_t2 = 1;
+                    err = clEnqueueNDRangeKernel(exec.exec_queue, exec.exec_kernels["check_outputs"], 1, NULL, &global_size_t2, &local_size_t2, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    err = clEnqueueReadBuffer(exec.exec_queue, dresult, CL_TRUE, 0, sizeof(cl_int) * 1, &hresult, 0, NULL, NULL);
+                    check_ocl(err);
+
+                    histogram[hresult]++;
+                }
+                now = std::chrono::high_resolution_clock::now();
+                end_time = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+                time = end_time - begin_time;
+                float time_float = static_cast<float>(time) / static_cast<float>(NANOSEC);
+
+//                return_str << x_y_distance + offset << " " << scratch_location << " " << histogram[cfg.hist_size - 2] << std::endl;
+//                return_str << std::endl << "RESULTS: " << std::endl;
+//                return_str << "-------------------" << std::endl;
+//                for (int i = 0; i < cfg.hist_size; i++) {
+//                  return_str << cfg.hist_strings[i] << histogram[i] << std::endl;
+//                }
+//                return_str << std::endl;
+//                return_str << "RATES" << std::endl;
+//                return_str << "-------------------" << std::endl;
+//                return_str << "tests          : " << ITERATIONS << std::endl;
+//                return_str << "time (seconds) : " << time_float << std::endl;
+//                return_str << "tests/sec      : " << static_cast< float >(ITERATIONS)/ time_float << std::endl;
+//                return_str << std::endl;
+
+                json stress_test_obj;
+                stress_test_obj["x_y_distance"] = x_y_distance;
+                stress_test_obj["offset"] = offset;
+                stress_test_obj["scratch_location"] = scratch_location;
+                json stress_test_histogram;
+                for (int i = 0; i < cfg.hist_size; i++) {
+                    stress_test_histogram[cfg.hist_strings[i]] = histogram[i];
+                }
+                stress_test_obj["histogram"] = stress_test_histogram;
+                stress_test_obj["time"] = time_float;
+                stress_test_obj["test_count"] = ITERATIONS;
+                stress_test_obj["test_time_ratio"] = static_cast< float >(ITERATIONS)/ time_float;
+                std::stringstream stress_test_obj_key;
+                stress_test_obj_key << x_y_distance + offset << ":" << scratch_location;
+                response[stress_test_obj_key.str()] = stress_test_obj;
+
+            }
+        }
+    }
+    free(shuffled_wg_order);
+    free(temp_id_ordering);
+    free(shuffled_warp_order);
+    free(platforms);
+
+    return env->NewStringUTF(response.dump().c_str());
 }
 
 

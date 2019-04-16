@@ -41,6 +41,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
         tv = (TextView) findViewById(R.id.activity_test_finished_result);
         String kernelFile = "tests/MP/kernel.cl";
         String configFile = "tests/MP/config.txt";
+
         String result = executeTest(kernelFile, configFile);
         tv.setText(result);
         try {

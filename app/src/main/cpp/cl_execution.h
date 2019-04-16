@@ -218,20 +218,21 @@ public:
         std::stringstream options;
         options.setf(std::ios::fixed, std::ios::floatfield);
 
-        //set compiler options here, example below
-        options << "-I" << kernel_include << " ";
+        // set compiler options here, example below
+//        options << "-I" << kernel_include << " ";
+//        options << kernel_defs;
+        // Check if OpenCL 2.0
         options << check_ocl2x();
         options << get_vendor_option();
 
         //build the program
-//        return_str << "FLAGS: " << options.str() << std::endl;
-        ret = clBuildProgram(exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
+        ret = clBuildProgram(
+                exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
 
         if (ret != CL_SUCCESS) {
             char buffer[2048];
             cl_program_build_info b_info = CL_PROGRAM_BUILD_LOG;
             clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
-//            return_str << "Build Fail: " << buffer << std::endl;
             return ret;
         }
         return ret;
