@@ -1,5 +1,6 @@
 package com.example.openclexample;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -12,6 +13,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.Callable;
 
 import cz.msebera.android.httpclient.HttpEntity;
 import cz.msebera.android.httpclient.entity.StringEntity;
@@ -22,10 +24,26 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
     TextView tv;
     int iteration;
 
+
+    private class LitmustTestTask extends AsyncTask<String, Integer, String> {
+        protected String doInBackground(String... arguments) {
+            return executeTest(arguments[0], arguments[1]);
+        }
+
+        protected void onProgressUpdate(Integer... progress) {
+        }
+
+        protected void onPostExecute(String response) {
+            tv.setText(response);
+        }
+
+    }
+
     public void taskCompleted(JSONObject response) {
         String response_str = response.toString();
         tv.setText(response_str);
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,17 +57,32 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
         iteration = bundle.getInt("iteration");
         setContentView(R.layout.activity_test_finished);
         tv = (TextView) findViewById(R.id.activity_test_finished_result);
-        String kernelFile = "tests/MP/kernel.cl";
-        String configFile = "tests/MP/config.txt";
+        final String kernelFile = "tests/MP/kernel.cl";
+        final String configFile = "tests/MP/config.txt";
 
-        String result = executeTest(kernelFile, configFile);
-        tv.setText(result);
-        try {
-            jsonObj = new JSONObject(result);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
+        // Regular execution
+//        String result = executeTest(kernelFile, configFile);
+        // Thread
+        new Thread(new Runnable(){
+            @Override
+            public void run() {
+                final String response = executeTest(kernelFile, configFile);
+                tv.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        tv.setText(response);
+                    }
+                });
+            }
+        }).start();
+        // Async
+//        new LitmustTestTask().execute(kernelFile, configFile);
+//        try {
+//            jsonObj = new JSONObject(result);
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//            return;
+//        }
 //        StringEntity entity = new StringEntity(jsonObj.toString());
 //        entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
 //        ServerRestClient.post("test", entity, this);
