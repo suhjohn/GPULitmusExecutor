@@ -1,4 +1,4 @@
-package com.example.openclexample;
+package com.suhjohn.androidgpuconformancetester;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -13,17 +13,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.Callable;
-
-import cz.msebera.android.httpclient.HttpEntity;
-import cz.msebera.android.httpclient.entity.StringEntity;
-import cz.msebera.android.httpclient.message.BasicHeader;
-import cz.msebera.android.httpclient.protocol.HTTP;
 
 public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCompleted {
     TextView tv;
     int iteration;
-
 
     private class LitmustTestTask extends AsyncTask<String, Integer, String> {
         protected String doInBackground(String... arguments) {
@@ -76,13 +69,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
             }
         }).start();
         // Async
-//        new LitmustTestTask().execute(kernelFile, configFile);
-//        try {
-//            jsonObj = new JSONObject(result);
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//            return;
-//        }
+        new LitmustTestTask().execute(kernelFile, configFile);
 //        StringEntity entity = new StringEntity(jsonObj.toString());
 //        entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
 //        ServerRestClient.post("test", entity, this);

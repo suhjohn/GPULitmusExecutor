@@ -2,7 +2,6 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 200
 
 #include <jni.h>
-#include <CL/cl.hpp>
 #include <android/log.h>
 #include <vector>
 #include <iostream>
@@ -85,6 +84,83 @@ std::string kernel_include = "./tests";
 cl_platform_id *platforms;
 std::map<std::string, ChipConfig> ChipConfigMaps;
 
+/**
+ * OpenCL Dynamic Loading
+ * */
+void *openCLHndl;
+std::string default_so_paths[7] = {
+        "/system/lib/libOpenCL.so",
+        "/system/lib64/libOpenCL.so",
+        "/system/vendor/lib/libOpenCL.so",
+        "/system/vendor/lib64/libOpenCL.so",
+        "/system/vendor/lib64/libGLES_mali.so",
+        "/system/vendor/lib/libPVROCL.so",
+        "/data/data/org.pocl.libs/files/lib/libpocl.so",
+};
+
+cl_int (*DroidclGetPlatformIDs)(
+        cl_uint, cl_platform_id *, cl_uint *);
+
+cl_int (*DroidclGetDeviceIds)(
+        cl_platform_id, cl_device_type, cl_uint, cl_device_id *, cl_uint *);
+
+cl_int (*DroidclGetDeviceInfo)(
+        cl_device_id, cl_device_info, size_t, void *, size_t *);
+
+cl_program (*DroidclCreateProgramWithSource)(
+        cl_context, cl_uint, const char **, const size_t *, cl_int *);
+
+cl_int (*DroidclBuildProgram)(cl_program, cl_uint, const cl_device_id *, const char *,
+                              void (*pfn_notify)(cl_program, void *user_data), void *);
+
+cl_int (*DroidclGetProgramBuildInfo)(
+        cl_program, cl_device_id, cl_program_build_info, size_t, void *, size_t *);
+
+cl_context (*DroidclCreateContext)(
+        cl_context_properties *, cl_uint, const cl_device_id *, void *,
+        void *, cl_int *);
+
+cl_command_queue (*DroidclCreateCommandQueue)(
+        cl_context, cl_device_id, cl_command_queue_properties, cl_int *
+);
+
+cl_kernel (*DroidclCreateKernel)(cl_program, const char *, cl_int *);
+
+cl_mem (*DroidclCreateBuffer)(cl_context, cl_mem_flags, size_t, void *, cl_int *);
+
+cl_int (*DroidclSetKernelArg)(cl_kernel, cl_uint, size_t, const void *);
+
+void initializeDroidCL() {
+    for (const auto &path : default_so_paths) {
+        openCLHndl = dlopen(path.c_str(), RTLD_NOW);
+        if (openCLHndl != NULL) {
+            *(void **) (&DroidclGetPlatformIDs) = dlsym(
+                    openCLHndl, "clGetPlatformIDs");
+            *(void **) (&DroidclGetDeviceIds) = dlsym(
+                    openCLHndl, "clGetDeviceIDs");
+            *(void **) (&DroidclGetDeviceInfo) = dlsym(
+                    openCLHndl, "clGetDeviceInfo");
+            *(void **) (&DroidclCreateProgramWithSource) = dlsym(
+                    openCLHndl, "clCreateProgramWithSource");
+            *(void **) (&DroidclBuildProgram) = dlsym(
+                    openCLHndl, "clBuildProgram");
+            *(void **) (&DroidclGetProgramBuildInfo) = dlsym(
+                    openCLHndl, "clGetProgramBuildInfo");
+            *(void **) (&DroidclCreateContext) = dlsym(
+                    openCLHndl, "clCreateContext");
+            *(void **) (&DroidclCreateCommandQueue) = dlsym(
+                    openCLHndl, "clCreateCommandQueue");
+            *(void **) (&DroidclCreateKernel) = dlsym(
+                    openCLHndl, "clCreateKernel");
+            *(void **) (&DroidclCreateBuffer) = dlsym(
+                    openCLHndl, "clCreateBuffer");
+        }
+    }
+}
+
+/**
+ *
+ * */
 
 void populate_ChipConfigMaps() {
     ChipConfig defaultChipConfig = {256, 1, 18};
@@ -125,7 +201,7 @@ TestConfig parse_config(const std::string &config_str) {
 }
 
 //From IWOCL tutorial (needs attribution)
-unsigned getDeviceList(std::vector<std::vector<cl_device_id>> &devices) {
+unsigned long getDeviceList(std::vector<std::vector<cl_device_id>> &devices) {
     DroidCL droidCL;
     int err = 0;
     cl_uint num_plats = 0;
@@ -159,15 +235,15 @@ unsigned getDeviceList(std::vector<std::vector<cl_device_id>> &devices) {
 cl_int get_kernels(CL_Execution &exec) {
 
     cl_int ret = CL_SUCCESS;
-
-    exec.exec_kernels["litmus_test"] = clCreateKernel(
+    DroidCL droidCL;
+    exec.exec_kernels["litmus_test"] = droidCL.clCreateKernel(
             exec.exec_program, "litmus_test", &ret);
     check_ocl(ret);
 
     //Consider doing this for robustness
     //exec.check_kernel_wg_sizes(exec.exec_kernels["bfs_init"], "bfs_init", TB_SIZE);
 
-    exec.exec_kernels["check_outputs"] = clCreateKernel(
+    exec.exec_kernels["check_outputs"] = droidCL.clCreateKernel(
             exec.exec_program, "check_outputs", &ret);
     check_ocl(ret);
 
@@ -182,7 +258,6 @@ cl_int get_kernels(CL_Execution &exec) {
 std::string jstringToString(JNIEnv *env, jstring jStr) {
     if (!jStr)
         return "";
-
     const jclass stringClass = env->GetObjectClass(jStr);
     const jmethodID getBytes = env->GetMethodID(
             stringClass, "getBytes", "(Ljava/lang/String;)[B");
@@ -207,11 +282,13 @@ int jintToInt(JNIEnv *env, jint value) {
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *env,
-                                                                      jobject thiz,
-                                                                      jstring config_string,
-                                                                      jstring kernel_string,
-                                                                      jint iteration) {
+Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusTest(
+        JNIEnv *env,
+        jobject thiz,
+        jstring config_string,
+        jstring kernel_string,
+        jint iteration) {
+    DroidCL droidCL;
     ChipConfig cConfig;
     CL_Execution exec;
     json response;
@@ -228,6 +305,7 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     PLATFORM_ID = 0;
     DEVICE_ID = 0;
     INPUT_FILE = "../../../cpp/tests/MP";
+//    initializeDroidCL();
 
     getDeviceList(devices);
     if (PLATFORM_ID >= devices.size()) {
@@ -259,11 +337,11 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     }
     cl_context_properties props[3] = {
             CL_CONTEXT_PLATFORM, (cl_context_properties) exec.exec_platform, 0};
-    exec.exec_context = clCreateContext(
+    exec.exec_context = droidCL.clCreateContext(
             props, 1, &(exec.exec_device), NULL, NULL, &err);
     handle_cl_error(env, err);
 
-    exec.exec_queue = clCreateCommandQueue(
+    exec.exec_queue = droidCL.clCreateCommandQueue(
             exec.exec_context, exec.exec_device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
     handle_cl_error(env, err);
 
@@ -274,7 +352,7 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     err = exec.compile_kernel_string(test_kernel_string, kernel_include.c_str(), opts);
     if (err < 0) {
         char buffer[2048];
-        clGetProgramBuildInfo(
+        droidCL.clGetProgramBuildInfo(
                 exec.exec_program, exec.exec_device, CL_PROGRAM_BUILD_LOG, 2048, buffer, NULL);
         return_str << "[exec.compile_kernel_string] ERROR: " << err << std::endl;
         return_str << buffer << std::endl;
@@ -291,48 +369,61 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     // Actual real stuff starts
 
 
-    cl_mem dga = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE), NULL, &err);
+    cl_mem dga = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
+                                        sizeof(cl_int) * (SIZE), NULL,
+                                        &err);
     check_ocl(err);
-    cl_mem dgna = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (SIZE), NULL, &err);
+    cl_mem dgna = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
+                                         sizeof(cl_int) * (SIZE),
+                                         NULL, &err);
     check_ocl(err);
-    cl_mem doutput = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * ((cfg.output_size)), NULL, &err);
+    cl_mem doutput = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
+                                            sizeof(cl_int) * ((cfg.output_size)), NULL, &err);
     check_ocl(err);
-    cl_mem dresult = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (1), NULL, &err);
+    cl_mem dresult = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
+                                            sizeof(cl_int) * (1),
+                                            NULL, &err);
     check_ocl(err);
-    cl_mem dshuffled_ids = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (max_global_size), NULL, &err);
+    cl_mem dshuffled_ids = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
+                                                  sizeof(cl_int) * (max_global_size), NULL, &err);
     check_ocl(err);
-    cl_mem dscratchpad = clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE, sizeof(cl_int) * (512), NULL, &err);
+    cl_mem dscratchpad = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
+                                                sizeof(cl_int) * (512), NULL, &err);
     check_ocl(err);
     cl_int dwarp_size = 32;
 
     cl_int hga[SIZE], hgna[SIZE], houtput[SIZE];
     cl_int hresult;
-    cl_int *hshuffled_ids = (cl_int *)malloc(sizeof(cl_int) * max_global_size);
+    cl_int *hshuffled_ids = (cl_int *) malloc(sizeof(cl_int) * max_global_size);
 
     std::cout << "hist size: " << cfg.hist_size << std::endl;
 
-    for (int i = 0; i < max_global_size; i++)
-    {
+    for (int i = 0; i < max_global_size; i++) {
         hshuffled_ids[i] = i;
     }
 
-    for (int i = 0; i < SIZE; i++)
-    {
+    for (int i = 0; i < SIZE; i++) {
         hga[i] = hgna[i] = houtput[i] = 0;
     }
 
     // cl_int scratch_location = 128;
     // cl_int x_y_distance = 128;
 
-    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 0, sizeof(cl_mem), &dga));
-    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 1, sizeof(cl_mem), &dgna));
-    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 2, sizeof(cl_mem), &doutput));
-    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 3, sizeof(cl_mem), &dshuffled_ids));
-    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 4, sizeof(cl_mem), &dscratchpad));
-    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 7, sizeof(cl_int), &dwarp_size));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 0, sizeof(cl_mem), &dga));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 1, sizeof(cl_mem), &dgna));
+    check_ocl(
+            droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 2, sizeof(cl_mem), &doutput));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 3, sizeof(cl_mem),
+                                     &dshuffled_ids));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 4, sizeof(cl_mem),
+                                     &dscratchpad));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 7, sizeof(cl_int),
+                                     &dwarp_size));
 
-    check_ocl(clSetKernelArg(exec.exec_kernels["check_outputs"], 0, sizeof(cl_mem), &doutput));
-    check_ocl(clSetKernelArg(exec.exec_kernels["check_outputs"], 1, sizeof(cl_mem), &dresult));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["check_outputs"], 0, sizeof(cl_mem),
+                                     &doutput));
+    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["check_outputs"], 1, sizeof(cl_mem),
+                                     &dresult));
 
     auto now = std::chrono::high_resolution_clock::now();
     long long begin_time, end_time, time;
@@ -340,125 +431,143 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
             now.time_since_epoch()).count();
 
     int *shuffled_wg_order = (int *) malloc(occupancy * sizeof(int));
-    int *temp_id_ordering = (int *)malloc(max_global_size*sizeof(int));
-    int *shuffled_warp_order = (int *) malloc((max_local_size/dwarp_size) * sizeof(int));
+    int *temp_id_ordering = (int *) malloc(max_global_size * sizeof(int));
+    int *shuffled_warp_order = (int *) malloc((max_local_size / dwarp_size) * sizeof(int));
 
     // For loop over x_y_dist between 2 and 512 incrementing by two
     // For loop over scrach_location between 2 and 512 incrementing by two
-    for (int dist = 65; dist <= 512; dist += 32)
-    {
+    for (int dist = 65; dist <= 512; dist += 32) {
         cl_int x_y_distance = dist;
-        for (int location = 65; location <= 512; location += 32)
-        {
+        for (int location = 65; location <= 512; location += 32) {
             cl_int scratch_location = location;
-            for (int offset = 0; offset < 2; offset++)
-            {
-                int *histogram = (int *)malloc(sizeof(int) * cfg.hist_size);
-                for (int i = 0; i < cfg.hist_size; i++)
-                {
+            for (int offset = 0; offset < 2; offset++) {
+                int *histogram = (int *) malloc(sizeof(int) * cfg.hist_size);
+                for (int i = 0; i < cfg.hist_size; i++) {
                     histogram[i] = 0;
                 }
 
-                for (int i = 0; i < ITERATIONS; i++)
-                {
-                    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 5, sizeof(cl_int), &scratch_location));
+                for (int i = 0; i < ITERATIONS; i++) {
+                    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 5,
+                                                     sizeof(cl_int),
+                                                     &scratch_location));
                     cl_int to_pass = x_y_distance + offset;
-                    check_ocl(clSetKernelArg(exec.exec_kernels["litmus_test"], 6, sizeof(cl_int), &to_pass));
+                    check_ocl(droidCL.clSetKernelArg(exec.exec_kernels["litmus_test"], 6,
+                                                     sizeof(cl_int),
+                                                     &to_pass));
 
                     // set up ids
                     // mod by zero, if max local size is same and min
-                    int local_size = (rand() % (max_local_size - cConfig.min_local_size)) + cConfig.min_local_size;
+                    int local_size = (rand() % (max_local_size - cConfig.min_local_size)) +
+                                     cConfig.min_local_size;
                     int global_size = occupancy * local_size;
                     int wg_count = global_size / local_size;
                     int warp_size = dwarp_size; // add to chip config before amd testing
                     int warps_per_wg = local_size / warp_size;
                     int remainder_threads = local_size % warp_size;
 
-                    for (int j = 0; j < global_size; j++)
-                    {
+                    for (int j = 0; j < global_size; j++) {
                         hshuffled_ids[j] = i;
                     }
 
                     // id shuffle
-                    for (int i = 0; i < wg_count; i++)
-                    {
+                    for (int i = 0; i < wg_count; i++) {
                         shuffled_wg_order[i] = i;
                     }
-                    std::random_shuffle(shuffled_wg_order, &shuffled_wg_order[wg_count]); // random_shuffle not end inclusive
+                    std::random_shuffle(shuffled_wg_order,
+                                        &shuffled_wg_order[wg_count]); // random_shuffle not end inclusive
 
-                    for (int i = 0; i < global_size; i++)
-                    {
+                    for (int i = 0; i < global_size; i++) {
                         temp_id_ordering[i] = i;
                     }
 
-                    for (int i = 0; i < wg_count; i++)
-                    {
-                        for (int j = 0; j < warps_per_wg; j++)
-                        {
-                            std::random_shuffle(&temp_id_ordering[i * local_size + j * warp_size], &temp_id_ordering[i * local_size + (j + 1) * warp_size]);
+                    for (int i = 0; i < wg_count; i++) {
+                        for (int j = 0; j < warps_per_wg; j++) {
+                            std::random_shuffle(&temp_id_ordering[i * local_size + j * warp_size],
+                                                &temp_id_ordering[i * local_size +
+                                                                  (j + 1) * warp_size]);
                         }
                     }
-                    for (int i = 0; i < wg_count; i++)
-                    {
+                    for (int i = 0; i < wg_count; i++) {
 
-                        for (int x = 0; x < warps_per_wg; x++)
-                        {
+                        for (int x = 0; x < warps_per_wg; x++) {
                             shuffled_warp_order[x] = x;
                         }
-                        std::random_shuffle(shuffled_warp_order, &shuffled_warp_order[warps_per_wg]);
+                        std::random_shuffle(shuffled_warp_order,
+                                            &shuffled_warp_order[warps_per_wg]);
 
-                        for (int j = 0; j < warps_per_wg; j++)
-                        {
-                            for (int k = 0; k < warp_size; k++)
-                            {
-                                hshuffled_ids[i * local_size + j * warp_size + k] = temp_id_ordering[shuffled_wg_order[i] * local_size + shuffled_warp_order[j] * warp_size + k];
+                        for (int j = 0; j < warps_per_wg; j++) {
+                            for (int k = 0; k < warp_size; k++) {
+                                hshuffled_ids[i * local_size + j * warp_size +
+                                              k] = temp_id_ordering[
+                                        shuffled_wg_order[i] * local_size +
+                                        shuffled_warp_order[j] * warp_size + k];
                             }
                         }
 
-                        if (remainder_threads != 0)
-                        {
-                            for (int y = 0; y < remainder_threads; y++)
-                            {
-                                hshuffled_ids[i * local_size + (warps_per_wg + 1) * warp_size + y] = temp_id_ordering[shuffled_wg_order[i] * local_size + (warps_per_wg + 1) * warp_size + y];
+                        if (remainder_threads != 0) {
+                            for (int y = 0; y < remainder_threads; y++) {
+                                hshuffled_ids[i * local_size + (warps_per_wg + 1) * warp_size +
+                                              y] = temp_id_ordering[
+                                        shuffled_wg_order[i] * local_size +
+                                        (warps_per_wg + 1) * warp_size + y];
                             }
                         }
                     }
 
-                    err = clEnqueueWriteBuffer(exec.exec_queue, dshuffled_ids, CL_TRUE, 0, sizeof(cl_int) * (global_size), hshuffled_ids, 0, NULL, NULL);
+                    err = droidCL.clEnqueueWriteBuffer(exec.exec_queue, dshuffled_ids, CL_TRUE, 0,
+                                                       sizeof(cl_int) * (global_size),
+                                                       hshuffled_ids, 0,
+                                                       NULL, NULL);
                     check_ocl(err);
 
-                    err = clEnqueueWriteBuffer(exec.exec_queue, dga, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hga, 0, NULL, NULL);
+                    err = droidCL.clEnqueueWriteBuffer(exec.exec_queue, dga, CL_TRUE, 0,
+                                                       sizeof(cl_int) * (SIZE), hga, 0, NULL, NULL);
                     check_ocl(err);
 
-                    err = clEnqueueWriteBuffer(exec.exec_queue, dgna, CL_TRUE, 0, sizeof(cl_int) * (SIZE), hgna, 0, NULL, NULL);
+                    err = droidCL.clEnqueueWriteBuffer(exec.exec_queue, dgna, CL_TRUE, 0,
+                                                       sizeof(cl_int) * (SIZE), hgna, 0, NULL,
+                                                       NULL);
                     check_ocl(err);
 
-                    err = clEnqueueWriteBuffer(exec.exec_queue, doutput, CL_TRUE, 0, sizeof(cl_int) * (cfg.output_size), houtput, 0, NULL, NULL);
+                    err = droidCL.clEnqueueWriteBuffer(exec.exec_queue, doutput, CL_TRUE, 0,
+                                                       sizeof(cl_int) * (cfg.output_size), houtput,
+                                                       0, NULL,
+                                                       NULL);
                     check_ocl(err);
 
-                    err = clFinish(exec.exec_queue);
+                    err = droidCL.clFinish(exec.exec_queue);
                     check_ocl(err);
 
                     const size_t global_size_t = global_size;
                     const size_t local_size_t = local_size;
-                    err = clEnqueueNDRangeKernel(exec.exec_queue, exec.exec_kernels["litmus_test"], 1, NULL, &global_size_t, &local_size_t, 0, NULL, NULL);
+                    err = droidCL.clEnqueueNDRangeKernel(exec.exec_queue,
+                                                         exec.exec_kernels["litmus_test"],
+                                                         1, NULL, &global_size_t, &local_size_t, 0,
+                                                         NULL,
+                                                         NULL);
                     check_ocl(err);
 
-                    err = clFinish(exec.exec_queue);
+                    err = droidCL.clFinish(exec.exec_queue);
                     check_ocl(err);
 
                     const size_t global_size_t2 = 1;
                     const size_t local_size_t2 = 1;
-                    err = clEnqueueNDRangeKernel(exec.exec_queue, exec.exec_kernels["check_outputs"], 1, NULL, &global_size_t2, &local_size_t2, 0, NULL, NULL);
+                    err = droidCL.clEnqueueNDRangeKernel(exec.exec_queue,
+                                                         exec.exec_kernels["check_outputs"], 1,
+                                                         NULL,
+                                                         &global_size_t2, &local_size_t2, 0, NULL,
+                                                         NULL);
                     check_ocl(err);
 
-                    err = clEnqueueReadBuffer(exec.exec_queue, dresult, CL_TRUE, 0, sizeof(cl_int) * 1, &hresult, 0, NULL, NULL);
+                    err = droidCL.clEnqueueReadBuffer(exec.exec_queue, dresult, CL_TRUE, 0,
+                                                      sizeof(cl_int) * 1, &hresult, 0, NULL, NULL);
                     check_ocl(err);
 
                     histogram[hresult]++;
                 }
                 now = std::chrono::high_resolution_clock::now();
-                end_time = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+                end_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        now.time_since_epoch()).count();
                 time = end_time - begin_time;
                 float time_float = static_cast<float>(time) / static_cast<float>(NANOSEC);
 
@@ -487,11 +596,10 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
                 stress_test_obj["histogram"] = stress_test_histogram;
                 stress_test_obj["time"] = time_float;
                 stress_test_obj["test_count"] = ITERATIONS;
-                stress_test_obj["test_time_ratio"] = static_cast< float >(ITERATIONS)/ time_float;
+                stress_test_obj["test_time_ratio"] = static_cast< float >(ITERATIONS) / time_float;
                 std::stringstream stress_test_obj_key;
                 stress_test_obj_key << x_y_distance + offset << ":" << scratch_location;
                 response[stress_test_obj_key.str()] = stress_test_obj;
-
             }
         }
     }
@@ -501,6 +609,7 @@ Java_com_example_openclexample_TestFinishedActivity_executeLitmusTest(JNIEnv *en
     free(platforms);
 
     return env->NewStringUTF(response.dump().c_str());
+//    return env->NewStringUTF(return_str.str().c_str());
 }
 
 

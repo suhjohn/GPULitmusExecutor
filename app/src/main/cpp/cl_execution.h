@@ -244,142 +244,141 @@ public:
         }
         return ret;
     }
-
-    //roughly from IWOCL tutorial (needs attribution)
-    int
-    compile_kernel(const char *kernel_file, const char *kernel_include, std::string kernel_defs) {
-
-        int ret = CL_SUCCESS;
-        //exec_program = cl::Program(cl::Context(exec_context), loadProgram(kernel_file), ret);
-        size_t len;
-        std::string source = (loadProgram(kernel_file, &len));
-        const char *source_c_str = source.c_str();
-
-
-        exec_program = clCreateProgramWithSource(exec_context, 1, (const char **) &source_c_str,
-                                                 &len, &ret);
-
-        check_ocl(ret);
-
-        std::stringstream options;
-        options.setf(std::ios::fixed, std::ios::floatfield);
-
-        //set compiler options here, example below
-        //options << " -cl-fast-relaxed-math";
-
-        //Include the rt_device sources
-        options << "-I" << kernel_include << " ";
-
-        options << kernel_defs;
-
-
-        //Check to see if we're OpenCL 2.0
-        options << check_ocl2x();
-
-        options << get_vendor_option();
-
-        std::cout << "FLAGS: " << options.str() << std::endl;
-
-
-        //build the program
-        //ret = exec_program.build(options.str().c_str());
-        ret = clBuildProgram(exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
-        //check_ocl(ret);
-
-        if (ret != CL_SUCCESS) {
-            char buffer[2048];
-            cl_program_build_info b_info = CL_PROGRAM_BUILD_LOG;
-            clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
-            std::string log(buffer);
-            std::cerr << log << std::endl;
-            //if(false) dump_program_binary(exec_program);
-        }
-
-        return ret;
-    }
-
-    void dump_program_binary(cl::Program &exec_program) {
-        cl_int ret;
-
-        std::vector<char *> binary = exec_program.getInfo<CL_PROGRAM_BINARIES>(&ret);
-        if (ret != CL_SUCCESS) {
-            std::cerr << "ERROR:" << ret << ": when obtaining program source code";
-        }
-        std::vector<char *>::iterator i;
-        for (i = binary.begin(); i != binary.end(); i++) {
-            printf("%s\n", *i);
-        }
-    }
-
-    bool intel_subgroups() {
-        char buffer[256];
-        cl_device_info info = CL_DEVICE_EXTENSIONS;
-        int err = 0;
-        clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
-        //err = exec_device.getInfo(info, &buffer);
-        check_ocl(err);
-        std::string to_search(buffer);
-        if (to_search.find("cl_intel_subgroups") == std::string::npos) {
-            return false;
-        }
-        return true;
-    }
-
-    int get_compute_units(const char *kernel_name) {
-        return get_SMs();
-    }
-
-    int my_max(int f, int s) {
-        if (f > s)
-            return f;
-        return s;
-    }
-
-    size_t
-    kernel_residency_approx(const char *kernel_name, const int block_size, const bool discovery,
-                            int given = 0) {
-        /* not portable, not guaranteed to work */
-
-        /* generous upper bound. Maybe some GPUs might be higher under some configs?*/
-        if (discovery) {
-            return 512;
-        }
-        if (given != 0) {
-            printf("RESIDENCY: WARNING: using a given occupancy of %d. This will not be portable!",
-                   given);
-            return given;
-        }
-
-
-        if (!discovery) {
-            printf("RESIDENCY: WARNING: not using discovery, falling back to rough estimates based on compute units\n");
-        }
-
-        int compute_units = get_compute_units(kernel_name);
-        int vendor_adjusted = 0;
-        int factor = 256 / block_size;
-
-        /* These are roughly based on the Table 3 in the paper:
-           "Portable Inter-workgroup Barrier Synchronisation for GPUs"
-           These are CONSERVATIVE and likely not tight. This will depend on local memory, register pressure, etc.
-           If you can determine a better occupancy by hand, please pass it in as an arg.
-        */
-        if (is_AMD()) {
-            vendor_adjusted =
-                    (compute_units * 12) / 7;  // This is the ratio for R9, R7 allows more.
-        } else if (is_Nvidia()) {
-            vendor_adjusted = compute_units; // Maxwell does 2x, but Quadro kepler is 1x.
-        } else if (is_Intel()) {
-            vendor_adjusted = (compute_units + 1) / 8; // Works for iris and HD 5500
-        } else if (is_ARM()) {
-            vendor_adjusted = compute_units; // Works for t628 mali GPUs
-        } else {
-            printf("RESIDENCY: WARNING: unrecognized vendor, simply guessing residency is compute units\n");
-            vendor_adjusted = compute_units;
-        }
-
-        printf("RESIDENCY: returning occupancy of %d\n", my_max(vendor_adjusted, 1) * factor);
-        return my_max(vendor_adjusted, 1) * factor;
-    }
-
+//
+//    //roughly from IWOCL tutorial (needs attribution)
+//    int
+//    compile_kernel(const char *kernel_file, const char *kernel_include, std::string kernel_defs) {
+//
+//        int ret = CL_SUCCESS;
+//        //exec_program = cl::Program(cl::Context(exec_context), loadProgram(kernel_file), ret);
+//        size_t len;
+//        std::string source = (loadProgram(kernel_file, &len));
+//        const char *source_c_str = source.c_str();
+//
+//
+//        exec_program = clCreateProgramWithSource(exec_context, 1, (const char **) &source_c_str,
+//                                                 &len, &ret);
+//
+//        check_ocl(ret);
+//
+//        std::stringstream options;
+//        options.setf(std::ios::fixed, std::ios::floatfield);
+//
+//        //set compiler options here, example below
+//        //options << " -cl-fast-relaxed-math";
+//
+//        //Include the rt_device sources
+//        options << "-I" << kernel_include << " ";
+//
+//        options << kernel_defs;
+//
+//
+//        //Check to see if we're OpenCL 2.0
+//        options << check_ocl2x();
+//
+//        options << get_vendor_option();
+//
+//        std::cout << "FLAGS: " << options.str() << std::endl;
+//
+//
+//        //build the program
+//        //ret = exec_program.build(options.str().c_str());
+//        ret = clBuildProgram(exec_program, 1, &exec_device, options.str().c_str(), NULL, NULL);
+//        //check_ocl(ret);
+//
+//        if (ret != CL_SUCCESS) {
+//            char buffer[2048];
+//            cl_program_build_info b_info = CL_PROGRAM_BUILD_LOG;
+//            clGetProgramBuildInfo(exec_program, exec_device, b_info, 2048, buffer, NULL);
+//            std::string log(buffer);
+//            std::cerr << log << std::endl;
+//            //if(false) dump_program_binary(exec_program);
+//        }
+//
+//        return ret;
+//    }
+//
+//    void dump_program_binary(cl::Program &exec_program) {
+//        cl_int ret;
+//
+//        std::vector<char *> binary = exec_program.getInfo<CL_PROGRAM_BINARIES>(&ret);
+//        if (ret != CL_SUCCESS) {
+//            std::cerr << "ERROR:" << ret << ": when obtaining program source code";
+//        }
+//        std::vector<char *>::iterator i;
+//        for (i = binary.begin(); i != binary.end(); i++) {
+//            printf("%s\n", *i);
+//        }
+//    }
+//
+//    bool intel_subgroups() {
+//        char buffer[256];
+//        cl_device_info info = CL_DEVICE_EXTENSIONS;
+//        int err = 0;
+//        clGetDeviceInfo(exec_device, info, 256, buffer, NULL);
+//        //err = exec_device.getInfo(info, &buffer);
+//        check_ocl(err);
+//        std::string to_search(buffer);
+//        if (to_search.find("cl_intel_subgroups") == std::string::npos) {
+//            return false;
+//        }
+//        return true;
+//    }
+//
+//    int get_compute_units(const char *kernel_name) {
+//        return get_SMs();
+//    }
+//
+//    int my_max(int f, int s) {
+//        if (f > s)
+//            return f;
+//        return s;
+//    }
+//
+//    size_t
+//    kernel_residency_approx(const char *kernel_name, const int block_size, const bool discovery,
+//                            int given = 0) {
+//        /* not portable, not guaranteed to work */
+//
+//        /* generous upper bound. Maybe some GPUs might be higher under some configs?*/
+//        if (discovery) {
+//            return 512;
+//        }
+//        if (given != 0) {
+//            printf("RESIDENCY: WARNING: using a given occupancy of %d. This will not be portable!",
+//                   given);
+//            return given;
+//        }
+//
+//
+//        if (!discovery) {
+//            printf("RESIDENCY: WARNING: not using discovery, falling back to rough estimates based on compute units\n");
+//        }
+//
+//        int compute_units = get_compute_units(kernel_name);
+//        int vendor_adjusted = 0;
+//        int factor = 256 / block_size;
+//
+//        /* These are roughly based on the Table 3 in the paper:
+//           "Portable Inter-workgroup Barrier Synchronisation for GPUs"
+//           These are CONSERVATIVE and likely not tight. This will depend on local memory, register pressure, etc.
+//           If you can determine a better occupancy by hand, please pass it in as an arg.
+//        */
+//        if (is_AMD()) {
+//            vendor_adjusted =
+//                    (compute_units * 12) / 7;  // This is the ratio for R9, R7 allows more.
+//        } else if (is_Nvidia()) {
+//            vendor_adjusted = compute_units; // Maxwell does 2x, but Quadro kepler is 1x.
+//        } else if (is_Intel()) {
+//            vendor_adjusted = (compute_units + 1) / 8; // Works for iris and HD 5500
+//        } else if (is_ARM()) {
+//            vendor_adjusted = compute_units; // Works for t628 mali GPUs
+//        } else {
+//            printf("RESIDENCY: WARNING: unrecognized vendor, simply guessing residency is compute units\n");
+//            vendor_adjusted = compute_units;
+//        }
+//
+//        printf("RESIDENCY: returning occupancy of %d\n", my_max(vendor_adjusted, 1) * factor);
+//        return my_max(vendor_adjusted, 1) * factor;
+//    }
 };

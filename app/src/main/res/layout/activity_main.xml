@@ -7,7 +7,7 @@
     android:layout_height="fill_parent"
     android:orientation="vertical"
     android:weightSum="2"
-    tools:context="com.example.openclexample.MainActivitiy">
+    tools:context="com.suhjohn.androidgpuconformancetester.MainActivitiy">
 
     <TextView
         android:id="@+id/activity_main_title"

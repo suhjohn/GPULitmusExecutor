@@ -1,4 +1,4 @@
-package com.example.openclexample;
+package com.suhjohn.androidgpuconformancetester;
 
 import android.content.Context;
 
