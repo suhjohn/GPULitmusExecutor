@@ -40,23 +40,6 @@ jstring handle_error(JNIEnv *env, const int e, const char *file, const int line)
     return env->NewStringUTF("");
 }
 
-/*cl_device_id device_id = NULL;
-cl_context context = NULL;
-cl_command_queue command_queue = NULL;
-cl_platform_id platform_id = NULL;
-cl_uint ret_num_devices;
-cl_uint ret_num_platforms;
-cl_int ret;
-
-#define SIZE 1000
-
-void set_up_opencl_junk() {
-  ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-  ret = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_DEFAULT, 1, &device_id, &ret_num_devices);
-  context = clCreateContext(NULL, 1, &device_id, NULL, NULL, &ret);
-  command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
-}*/
-
 struct TestConfig {
     int hist_size;
     std::vector<std::string> hist_strings;
@@ -83,6 +66,9 @@ std::string INPUT_FILE;
 std::string kernel_include = "./tests";
 cl_platform_id *platforms;
 std::map<std::string, ChipConfig> ChipConfigMaps;
+CL_Execution exec;
+ChipConfig cConfig;
+DroidCL droidCL;
 
 /**
  * OpenCL Dynamic Loading
@@ -280,6 +266,9 @@ int jintToInt(JNIEnv *env, jint value) {
     return val;
 }
 
+
+
+
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusTest(
@@ -288,9 +277,6 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
         jstring config_string,
         jstring kernel_string,
         jint iteration) {
-    DroidCL droidCL;
-    ChipConfig cConfig;
-    CL_Execution exec;
     json response;
     std::string opts;
     std::stringstream return_str;
@@ -305,7 +291,6 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
     PLATFORM_ID = 0;
     DEVICE_ID = 0;
     INPUT_FILE = "../../../cpp/tests/MP";
-//    initializeDroidCL();
 
     getDeviceList(devices);
     if (PLATFORM_ID >= devices.size()) {

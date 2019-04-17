@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.loopj.android.http.RequestParams;
@@ -15,8 +16,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCompleted {
-    TextView tv;
-    int iteration;
+    private final String commonHeaderFilepath = "tests/testing_common.h";
+    private TextView tv;
+    private ProgressBar progressBar;
+    private int iteration;
+    private String kernelFile;
+    private String configFile;
 
     private class LitmustTestTask extends AsyncTask<String, Integer, String> {
         protected String doInBackground(String... arguments) {
@@ -26,60 +31,60 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
         protected void onProgressUpdate(Integer... progress) {
         }
 
+        /***
+         * response looks like the following:
+         * {
+         *  xydistance + offset:scratch_location: TestIterationObject
+         * }
+         * @param response
+         */
         protected void onPostExecute(String response) {
+            try {
+                JSONObject responseJSON = new JSONObject(response);
+            } catch (Exception e) {
+                Log.e("onPostExecute:Error", e.getMessage());
+            }
+            // StringEntity entity = new StringEntity(jsonObj.toString());
+            // entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+            // ServerRestClient.post("test", entity, this);
             tv.setText(response);
         }
-
     }
 
     public void taskCompleted(JSONObject response) {
-        String response_str = response.toString();
-        tv.setText(response_str);
+        Log.i("taskCompleted", "Upload complete");
     }
 
+    private void setIteration() {
+        Bundle bundle = getIntent().getExtras();
+        try {
+            iteration = bundle.getInt("iteration");
+        } catch (Exception e) {
+            iteration = 10;
+        }
+    }
+
+    private void setTestFilePath() {
+        kernelFile = "tests/MP/kernel.cl";
+        configFile = "tests/MP/config.txt";
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        /* Retrieve our TextView and set its content.
-         * the text is retrieved by calling a native
-         * function.
-         */
-        JSONObject jsonObj;
-        Bundle bundle = getIntent().getExtras();
-        iteration = bundle.getInt("iteration");
+        this.setIteration();
+        this.setTestFilePath();
         setContentView(R.layout.activity_test_finished);
-        tv = (TextView) findViewById(R.id.activity_test_finished_result);
-        final String kernelFile = "tests/MP/kernel.cl";
-        final String configFile = "tests/MP/config.txt";
-
-        // Regular execution
-//        String result = executeTest(kernelFile, configFile);
-        // Thread
-        new Thread(new Runnable(){
-            @Override
-            public void run() {
-                final String response = executeTest(kernelFile, configFile);
-                tv.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        tv.setText(response);
-                    }
-                });
-            }
-        }).start();
-        // Async
+        tv = findViewById(R.id.activity_test_finished_result);
+        progressBar = findViewById(R.id.activity_test_finished_progressbar);
         new LitmustTestTask().execute(kernelFile, configFile);
-//        StringEntity entity = new StringEntity(jsonObj.toString());
-//        entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
-//        ServerRestClient.post("test", entity, this);
     }
 
     protected String executeTest(String kernelFile, String configFile) {
         try {
             int err;
             // Combine testing_common and kernel.cl
-            InputStream testingCommonStream = getAssets().open("tests/testing_common.h");
+            InputStream testingCommonStream = getAssets().open(commonHeaderFilepath);
             int testingCommonSize = testingCommonStream.available();
             byte[] testingCommonBuffer = new byte[testingCommonSize];
             err = testingCommonStream.read(testingCommonBuffer);

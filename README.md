@@ -1,7 +1,7 @@
 AndroidGPUConformanceTester
 =========
 
-An Android application for performing GPU Memory conformance tests using OpenCL. 
+An Android application for performing GPU Memory conformance tests using OpenCL.
 
 --------------
 - Android Studio 2.2+ with [NDK](https://developer.android.com/ndk/) bundle.
