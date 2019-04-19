@@ -1,0 +1,3 @@
+[submodule "app/src/main/cpp/OpenCLLitmus_v_2"]
+	path = app/src/main/cpp/OpenCLLitmus_v_2
+	url = git@github.com:tyler-utah/OpenCLLitmus_v_2.git

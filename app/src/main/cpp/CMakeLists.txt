@@ -38,7 +38,7 @@ find_library(log-lib log)
 
 add_library(litmus-test
         SHARED
-        litmus-test.cpp)
+        main.cpp)
 
 target_link_libraries(
         litmus-test

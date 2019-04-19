@@ -2,6 +2,7 @@
 #define ANDROID_OPENCLEXAMPLE_DROIDCL_H
 
 #include <CL/cl.h>
+#include <string>
 #include <dlfcn.h>
 
 using namespace std;

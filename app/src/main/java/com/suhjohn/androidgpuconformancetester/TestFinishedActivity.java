@@ -14,6 +14,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCompleted {
     private final String commonHeaderFilepath = "tests/testing_common.h";
@@ -36,14 +40,34 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
          * {
          *  xydistance + offset:scratch_location: TestIterationObject
          * }
+         * TODO figure out how to display information in a useful manner
+         * TODO send the data to the server
          * @param response
          */
         protected void onPostExecute(String response) {
-            try {
-                JSONObject responseJSON = new JSONObject(response);
-            } catch (Exception e) {
-                Log.e("onPostExecute:Error", e.getMessage());
-            }
+//            try {
+//                JSONObject responseJSON = new JSONObject(response);
+//                Iterator<String> keys = responseJSON.keys();
+//                List<String> keysList = new ArrayList<>();
+//                while (keys.hasNext()) keysList.add(keys.next());
+//                Collections.sort(keysList);
+//                StringBuilder displayTextBuilder = new StringBuilder();
+//                for (String key : keysList) {
+//                    JSONObject testResult = (JSONObject) responseJSON.get(key);
+//                    displayTextBuilder.append(key);
+//                    displayTextBuilder.append("\n");
+//                    Iterator<String> testKeys = testResult.keys();
+//                    while (testKeys.hasNext()){
+//                        String testKey = testKeys.next();
+//                        displayTextBuilder.append("        ");
+//                        displayTextBuilder.append(testKey + "  " + testResult.get(testKey));
+//                        displayTextBuilder.append("\n");
+//                    }
+//                }
+//                tv.setText(displayTextBuilder.toString());
+//            } catch (Exception e) {
+//                Log.e("onPostExecute:Error", e.getMessage());
+//            }
             // StringEntity entity = new StringEntity(jsonObj.toString());
             // entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
             // ServerRestClient.post("test", entity, this);
@@ -64,6 +88,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
         }
     }
 
+    // TODO: Take test types as parameters and set the filepaths
     private void setTestFilePath() {
         kernelFile = "tests/MP/kernel.cl";
         configFile = "tests/MP/config.txt";

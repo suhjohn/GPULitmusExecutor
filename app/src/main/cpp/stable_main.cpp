@@ -73,77 +73,76 @@ DroidCL droidCL;
 /**
  * OpenCL Dynamic Loading
  * */
-void *openCLHndl;
-std::string default_so_paths[7] = {
-        "/system/lib/libOpenCL.so",
-        "/system/lib64/libOpenCL.so",
-        "/system/vendor/lib/libOpenCL.so",
-        "/system/vendor/lib64/libOpenCL.so",
-        "/system/vendor/lib64/libGLES_mali.so",
-        "/system/vendor/lib/libPVROCL.so",
-        "/data/data/org.pocl.libs/files/lib/libpocl.so",
-};
-
-cl_int (*DroidclGetPlatformIDs)(
-        cl_uint, cl_platform_id *, cl_uint *);
-
-cl_int (*DroidclGetDeviceIds)(
-        cl_platform_id, cl_device_type, cl_uint, cl_device_id *, cl_uint *);
-
-cl_int (*DroidclGetDeviceInfo)(
-        cl_device_id, cl_device_info, size_t, void *, size_t *);
-
-cl_program (*DroidclCreateProgramWithSource)(
-        cl_context, cl_uint, const char **, const size_t *, cl_int *);
-
-cl_int (*DroidclBuildProgram)(cl_program, cl_uint, const cl_device_id *, const char *,
-                              void (*pfn_notify)(cl_program, void *user_data), void *);
-
-cl_int (*DroidclGetProgramBuildInfo)(
-        cl_program, cl_device_id, cl_program_build_info, size_t, void *, size_t *);
-
-cl_context (*DroidclCreateContext)(
-        cl_context_properties *, cl_uint, const cl_device_id *, void *,
-        void *, cl_int *);
-
-cl_command_queue (*DroidclCreateCommandQueue)(
-        cl_context, cl_device_id, cl_command_queue_properties, cl_int *
-);
-
-cl_kernel (*DroidclCreateKernel)(cl_program, const char *, cl_int *);
-
-cl_mem (*DroidclCreateBuffer)(cl_context, cl_mem_flags, size_t, void *, cl_int *);
-
-cl_int (*DroidclSetKernelArg)(cl_kernel, cl_uint, size_t, const void *);
-
-void initializeDroidCL() {
-    for (const auto &path : default_so_paths) {
-        openCLHndl = dlopen(path.c_str(), RTLD_NOW);
-        if (openCLHndl != NULL) {
-            *(void **) (&DroidclGetPlatformIDs) = dlsym(
-                    openCLHndl, "clGetPlatformIDs");
-            *(void **) (&DroidclGetDeviceIds) = dlsym(
-                    openCLHndl, "clGetDeviceIDs");
-            *(void **) (&DroidclGetDeviceInfo) = dlsym(
-                    openCLHndl, "clGetDeviceInfo");
-            *(void **) (&DroidclCreateProgramWithSource) = dlsym(
-                    openCLHndl, "clCreateProgramWithSource");
-            *(void **) (&DroidclBuildProgram) = dlsym(
-                    openCLHndl, "clBuildProgram");
-            *(void **) (&DroidclGetProgramBuildInfo) = dlsym(
-                    openCLHndl, "clGetProgramBuildInfo");
-            *(void **) (&DroidclCreateContext) = dlsym(
-                    openCLHndl, "clCreateContext");
-            *(void **) (&DroidclCreateCommandQueue) = dlsym(
-                    openCLHndl, "clCreateCommandQueue");
-            *(void **) (&DroidclCreateKernel) = dlsym(
-                    openCLHndl, "clCreateKernel");
-            *(void **) (&DroidclCreateBuffer) = dlsym(
-                    openCLHndl, "clCreateBuffer");
-        }
-    }
-}
-
+//void *openCLHndl;
+//std::string default_so_paths[7] = {
+//        "/system/lib/libOpenCL.so",
+//        "/system/lib64/libOpenCL.so",
+//        "/system/vendor/lib/libOpenCL.so",
+//        "/system/vendor/lib64/libOpenCL.so",
+//        "/system/vendor/lib64/libGLES_mali.so",
+//        "/system/vendor/lib/libPVROCL.so",
+//        "/data/data/org.pocl.libs/files/lib/libpocl.so",
+//};
+//
+//cl_int (*DroidclGetPlatformIDs)(
+//        cl_uint, cl_platform_id *, cl_uint *);
+//
+//cl_int (*DroidclGetDeviceIds)(
+//        cl_platform_id, cl_device_type, cl_uint, cl_device_id *, cl_uint *);
+//
+//cl_int (*DroidclGetDeviceInfo)(
+//        cl_device_id, cl_device_info, size_t, void *, size_t *);
+//
+//cl_program (*DroidclCreateProgramWithSource)(
+//        cl_context, cl_uint, const char **, const size_t *, cl_int *);
+//
+//cl_int (*DroidclBuildProgram)(cl_program, cl_uint, const cl_device_id *, const char *,
+//                              void (*pfn_notify)(cl_program, void *user_data), void *);
+//
+//cl_int (*DroidclGetProgramBuildInfo)(
+//        cl_program, cl_device_id, cl_program_build_info, size_t, void *, size_t *);
+//
+//cl_context (*DroidclCreateContext)(
+//        cl_context_properties *, cl_uint, const cl_device_id *, void *,
+//        void *, cl_int *);
+//
+//cl_command_queue (*DroidclCreateCommandQueue)(
+//        cl_context, cl_device_id, cl_command_queue_properties, cl_int *
+//);
+//
+//cl_kernel (*DroidclCreateKernel)(cl_program, const char *, cl_int *);
+//
+//cl_mem (*DroidclCreateBuffer)(cl_context, cl_mem_flags, size_t, void *, cl_int *);
+//
+//cl_int (*DroidclSetKernelArg)(cl_kernel, cl_uint, size_t, const void *);
+//
+//void initializeDroidCL() {
+//    for (const auto &path : default_so_paths) {
+//        openCLHndl = dlopen(path.c_str(), RTLD_NOW);
+//        if (openCLHndl != NULL) {
+//            *(void **) (&DroidclGetPlatformIDs) = dlsym(
+//                    openCLHndl, "clGetPlatformIDs");
+//            *(void **) (&DroidclGetDeviceIds) = dlsym(
+//                    openCLHndl, "clGetDeviceIDs");
+//            *(void **) (&DroidclGetDeviceInfo) = dlsym(
+//                    openCLHndl, "clGetDeviceInfo");
+//            *(void **) (&DroidclCreateProgramWithSource) = dlsym(
+//                    openCLHndl, "clCreateProgramWithSource");
+//            *(void **) (&DroidclBuildProgram) = dlsym(
+//                    openCLHndl, "clBuildProgram");
+//            *(void **) (&DroidclGetProgramBuildInfo) = dlsym(
+//                    openCLHndl, "clGetProgramBuildInfo");
+//            *(void **) (&DroidclCreateContext) = dlsym(
+//                    openCLHndl, "clCreateContext");
+//            *(void **) (&DroidclCreateCommandQueue) = dlsym(
+//                    openCLHndl, "clCreateCommandQueue");
+//            *(void **) (&DroidclCreateKernel) = dlsym(
+//                    openCLHndl, "clCreateKernel");
+//            *(void **) (&DroidclCreateBuffer) = dlsym(
+//                    openCLHndl, "clCreateBuffer");
+//        }
+//    }
+//}
 /**
  *
  * */
@@ -266,9 +265,6 @@ int jintToInt(JNIEnv *env, jint value) {
     return val;
 }
 
-
-
-
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusTest(
@@ -277,6 +273,7 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
         jstring config_string,
         jstring kernel_string,
         jint iteration) {
+
     json response;
     std::string opts;
     std::stringstream return_str;
@@ -294,14 +291,16 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
 
     getDeviceList(devices);
     if (PLATFORM_ID >= devices.size()) {
-        return_str << "ERROR: Invalid platform id " << PLATFORM_ID
+        return_str << "Invalid platform id " << PLATFORM_ID
                    << ". Please use the -l option to view platforms and device ids.\n";
-        return (*env).NewStringUTF(return_str.str().c_str());
+        response["error"] = return_str.str();
+        return (*env).NewStringUTF(response.dump().c_str());
     }
 
     if (DEVICE_ID >= devices[PLATFORM_ID].size()) {
         return_str << "ERROR: Invalid device id " << DEVICE_ID
                    << ". Please use the -l option to view platforms and device ids.\n";
+        response["error"] = return_str.str();
         return (*env).NewStringUTF(return_str.str().c_str());
     }
 
@@ -341,7 +340,8 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
                 exec.exec_program, exec.exec_device, CL_PROGRAM_BUILD_LOG, 2048, buffer, NULL);
         return_str << "[exec.compile_kernel_string] ERROR: " << err << std::endl;
         return_str << buffer << std::endl;
-        return env->NewStringUTF(return_str.str().c_str());
+        response["error"] = return_str.str();
+        return env->NewStringUTF(response.dump().c_str());
     }
 
     int occupancy = cConfig.occupancy_est;
@@ -352,8 +352,6 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
     handle_cl_error(env, err);
 
     // Actual real stuff starts
-
-
     cl_mem dga = droidCL.clCreateBuffer(exec.exec_context, CL_MEM_READ_WRITE,
                                         sizeof(cl_int) * (SIZE), NULL,
                                         &err);
@@ -467,9 +465,10 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
 
                     for (int i = 0; i < wg_count; i++) {
                         for (int j = 0; j < warps_per_wg; j++) {
-                            std::random_shuffle(&temp_id_ordering[i * local_size + j * warp_size],
-                                                &temp_id_ordering[i * local_size +
-                                                                  (j + 1) * warp_size]);
+                            std::random_shuffle(
+                                    &temp_id_ordering[i * local_size + j * warp_size],
+                                    &temp_id_ordering[i * local_size +
+                                                      (j + 1) * warp_size]);
                         }
                     }
                     for (int i = 0; i < wg_count; i++) {
@@ -556,20 +555,6 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
                 time = end_time - begin_time;
                 float time_float = static_cast<float>(time) / static_cast<float>(NANOSEC);
 
-//                return_str << x_y_distance + offset << " " << scratch_location << " " << histogram[cfg.hist_size - 2] << std::endl;
-//                return_str << std::endl << "RESULTS: " << std::endl;
-//                return_str << "-------------------" << std::endl;
-//                for (int i = 0; i < cfg.hist_size; i++) {
-//                  return_str << cfg.hist_strings[i] << histogram[i] << std::endl;
-//                }
-//                return_str << std::endl;
-//                return_str << "RATES" << std::endl;
-//                return_str << "-------------------" << std::endl;
-//                return_str << "tests          : " << ITERATIONS << std::endl;
-//                return_str << "time (seconds) : " << time_float << std::endl;
-//                return_str << "tests/sec      : " << static_cast< float >(ITERATIONS)/ time_float << std::endl;
-//                return_str << std::endl;
-
                 json stress_test_obj;
                 stress_test_obj["x_y_distance"] = x_y_distance;
                 stress_test_obj["offset"] = offset;
@@ -596,7 +581,3 @@ Java_com_suhjohn_androidgpuconformancetester_TestFinishedActivity_executeLitmusT
     return env->NewStringUTF(response.dump().c_str());
 //    return env->NewStringUTF(return_str.str().c_str());
 }
-
-
-
-
