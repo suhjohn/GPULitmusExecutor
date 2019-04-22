@@ -7,7 +7,6 @@
 #include "droidcl.h"
 #include <jni.h>
 #include "OpenCLLitmus_v_2/litmus_driver.cpp"
-// To compile: nvcc .\main.c -lOpenCL
 
 
 std::string jstringToString(JNIEnv *env, jstring jStr) {

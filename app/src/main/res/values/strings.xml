@@ -1,9 +1,17 @@
 <resources>
     <string name="app_name">AndroidGPUTester</string>
-    <string name="main_test_button">Start Test</string>
+    <string name="main_quick_test_button">Quick Test</string>
+    <string name="main_custom_test_button">Create Custom Test</string>
     <string name="main_description">
         GPUs are often prone to memory consistency bugs.
         The application runs tests using OpenCL to check if there are any bugs with your GPU if
         it exists.
     </string>
+
+
+    <string-array name="stress_patterns">
+        <item>N/A</item>
+    </string-array>
+    <string name="country_prompt">Choose a country</string>
+
 </resources>

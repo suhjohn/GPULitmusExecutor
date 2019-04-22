@@ -7,7 +7,7 @@
     android:layout_height="fill_parent"
     android:orientation="vertical"
     android:weightSum="2"
-    tools:context="com.suhjohn.androidgpuconformancetester.MainActivitiy">
+    tools:context="com.suhjohn.androidgpuconformancetester.MainActivity">
 
     <TextView
         android:id="@+id/activity_main_title"
@@ -27,64 +27,6 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical">
-
-        <android.support.constraint.ConstraintLayout
-            android:id="@+id/activity_main_test_start_form"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="10dp"
-            android:orientation="horizontal">
-
-            <android.support.design.widget.TextInputLayout
-                android:id="@+id/activity_main_test_start_form_iteration"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintWidth_percent=".5">
-
-                <EditText
-                    android:id="@+id/editText"
-                    android:inputType="number"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Iteration" />
-
-            </android.support.design.widget.TextInputLayout>
-        </android.support.constraint.ConstraintLayout>
-
-
-        <android.support.constraint.ConstraintLayout
-            android:id="@+id/activity_main_test_start_container"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp"
-            android:orientation="horizontal">
-
-            <android.support.v7.widget.AppCompatButton
-                android:id="@+id/activity_main_test_start_button"
-                style="@style/Widget.AppCompat.Button.Colored"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:backgroundTint="@color/colorAccent"
-                android:elevation="10dp"
-                android:onClick="executeTest"
-                android:padding="20dp"
-                android:text="@string/main_test_button"
-                android:textAppearance="@style/TextAppearance.AppCompat.Button"
-                android:textColor="@color/white"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintWidth_percent=".5" />
-        </android.support.constraint.ConstraintLayout>
-
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/activity_main_description_container"
@@ -111,6 +53,59 @@
                 app:layout_constraintWidth_percent=".75" />
         </android.support.constraint.ConstraintLayout>
 
+        <android.support.constraint.ConstraintLayout
+            android:id="@+id/activity_main_test_start_container"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <android.support.v7.widget.AppCompatButton
+                android:id="@+id/activity_main_test_start_button"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:backgroundTint="@color/colorAccent"
+                android:elevation="10dp"
+                android:onClick="executeQuickTest"
+                android:padding="20dp"
+                android:text="@string/main_quick_test_button"
+                android:textAppearance="@style/TextAppearance.AppCompat.Button"
+                android:textColor="@color/white"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_percent=".5" />
+        </android.support.constraint.ConstraintLayout>
+        
+        <android.support.constraint.ConstraintLayout
+            android:id="@+id/activity_main_custom_test_container"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <android.support.v7.widget.AppCompatButton
+                android:id="@+id/activity_main_custom_test_button"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:backgroundTint="@color/colorAccent"
+                android:elevation="10dp"
+                android:onClick="createCustomTest"
+                android:padding="20dp"
+                android:text="@string/main_quick_test_button"
+                android:textAppearance="@style/TextAppearance.AppCompat.Button"
+                android:textColor="@color/white"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintWidth_percent=".5" />
+        </android.support.constraint.ConstraintLayout>
 
     </LinearLayout>
 

@@ -144,7 +144,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
             String configString = new String(configBuffer);
             return executeLitmusTest(configString, kernelString, iteration);
         } catch (Exception e) {
-            Log.e("executeTest", e.getMessage());
+            Log.e("executeQuickTest", e.getMessage());
             e.printStackTrace();
         }
         return "";
