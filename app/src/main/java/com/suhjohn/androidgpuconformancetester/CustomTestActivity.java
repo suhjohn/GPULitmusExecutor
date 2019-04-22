@@ -24,7 +24,7 @@ public class CustomTestActivity extends AppCompatActivity {
          * the text is retrieved by calling a native
          * function.
          */
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_custom_test);
         iterationInputWrapper = (TextInputLayout)
                 findViewById(R.id.activity_custom_test_iteration_input);
         barrierCheckBox = (CheckBox)

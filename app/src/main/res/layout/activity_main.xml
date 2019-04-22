@@ -79,7 +79,7 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintWidth_percent=".5" />
         </android.support.constraint.ConstraintLayout>
-        
+
         <android.support.constraint.ConstraintLayout
             android:id="@+id/activity_main_custom_test_container"
             android:layout_width="fill_parent"
