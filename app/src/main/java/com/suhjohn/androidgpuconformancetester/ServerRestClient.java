@@ -12,17 +12,20 @@ public class ServerRestClient {
 
     private static AsyncHttpClient client = new AsyncHttpClient();
 
-    public static void get(String url, RequestParams params, AsyncHttpResponseHandler responseHandler) {
+    public static void get(String url, RequestParams params,
+                           AsyncHttpResponseHandler responseHandler) {
         client.get(getAbsoluteUrl(url), params, responseHandler);
     }
 
-    public static void post(String url, RequestParams params, AsyncHttpResponseHandler responseHandler) {
+    public static void post(String url, RequestParams params,
+                            AsyncHttpResponseHandler responseHandler) {
         client.post(getAbsoluteUrl(url), params, responseHandler);
     }
 
-    public static void post(String url, StringEntity params, AsyncHttpResponseHandler responseHandler) {
-        client.post(null, getAbsoluteUrl(url), params, "application/json", responseHandler);
-
+    public static void post(String url, StringEntity params,
+                            AsyncHttpResponseHandler responseHandler) {
+        client.post(null, getAbsoluteUrl(url),
+                params, "application/json", responseHandler);
     }
 
 

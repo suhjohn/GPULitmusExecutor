@@ -6,38 +6,36 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical"
+    android:padding="16dp"
     tools:context="com.suhjohn.androidgpuconformancetester.CustomTestActivity">
+
 
     <android.support.constraint.ConstraintLayout
         android:id="@+id/activity_custom_test_row_1"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        >
-        <android.support.constraint.ConstraintLayout
-            android:id="@+id/activity_custom_test_iteration_layout"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/activity_custom_litmus_test_type_label"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:text="litmus test types"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/activity_custom_test_iteration_label"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:text="iterations"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <android.support.design.widget.TextInputLayout
-                android:id="@+id/activity_custom_test_iteration_input"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="@id/activity_custom_test_iteration_label"
-                app:layout_constraintTop_toBottomOf="@id/activity_custom_test_iteration_label" />
-        </android.support.constraint.ConstraintLayout>
+        <Spinner
+            android:id="@+id/activity_custom_litmus_test_type_dropdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:drawable/btn_dropdown"
+            android:drawSelectorOnTop="true"
+            android:entries="@array/litmus_test_types"
+            android:overlapAnchor="false"
+            android:spinnerMode="dropdown"
+            app:layout_constraintStart_toStartOf="@+id/activity_custom_litmus_test_type_label"
+            app:layout_constraintTop_toBottomOf="@+id/activity_custom_litmus_test_type_label" />
 
     </android.support.constraint.ConstraintLayout>
 
@@ -48,6 +46,38 @@
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_1">
+
+        <TextView
+            android:id="@+id/activity_custom_test_pre_stress_pattern_label"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="pre stress patterns"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Spinner
+            android:id="@+id/activity_custom_test_pre_stress_pattern_dropdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:drawable/btn_dropdown"
+            android:drawSelectorOnTop="true"
+            android:entries="@array/stress_patterns"
+            android:overlapAnchor="false"
+            android:spinnerMode="dropdown"
+            app:layout_constraintStart_toStartOf="@+id/activity_custom_test_pre_stress_pattern_label"
+            app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_pre_stress_pattern_label" />
+
+
+    </android.support.constraint.ConstraintLayout>
+
+
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/activity_custom_test_row_3"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_2">
+
         <TextView
             android:id="@+id/activity_custom_test_stress_pattern_label"
             android:layout_width="fill_parent"
@@ -55,30 +85,30 @@
             android:text="stress patterns"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
         <Spinner
             android:id="@+id/activity_custom_test_stress_pattern_dropdown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@android:drawable/btn_dropdown"
-            android:spinnerMode="dropdown"
             android:drawSelectorOnTop="true"
             android:entries="@array/stress_patterns"
             android:overlapAnchor="false"
+            android:spinnerMode="dropdown"
             app:layout_constraintStart_toStartOf="@+id/activity_custom_test_stress_pattern_label"
-            app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_stress_pattern_label"
-            />
+            app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_stress_pattern_label" />
 
 
     </android.support.constraint.ConstraintLayout>
 
+
     <android.support.constraint.ConstraintLayout
-        android:id="@+id/activity_custom_test_row_3"
-        android:layout_width="0dp"
+        android:id="@+id/activity_custom_test_row_4"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_2"
-        >
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_3">
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/activity_custom_test_pre_barrier_layout"
@@ -102,14 +132,15 @@
                 android:id="@+id/activity_custom_test_barrier_checkbox"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
+                android:checked="false"
                 app:layout_constraintStart_toStartOf="@id/activity_custom_test_barrier_label"
                 app:layout_constraintTop_toBottomOf="@id/activity_custom_test_barrier_label" />
         </android.support.constraint.ConstraintLayout>
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/activity_custom_test_pre_stress_layout"
-            android:layout_width="202dp"
-            android:layout_height="49dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintLeft_toRightOf="@+id/activity_custom_test_pre_barrier_layout"
             app:layout_constraintTop_toTopOf="parent"
@@ -134,15 +165,15 @@
     </android.support.constraint.ConstraintLayout>
 
     <android.support.constraint.ConstraintLayout
-        android:id="@+id/activity_custom_test_row_4"
-        android:layout_width="0dp"
+        android:id="@+id/activity_custom_test_row_5"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_3">
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_4">
 
         <android.support.constraint.ConstraintLayout
-            android:id="@+id/activity_custom_test_pre_thread_randomization_layout"
+            android:id="@+id/activity_custom_test_shuffle_id_layout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -151,28 +182,29 @@
             app:layout_constraintWidth_percent=".5">
 
             <TextView
-                android:id="@+id/activity_custom_test_thread_randomization_label"
+                android:id="@+id/activity_custom_test_shuffle_id_label"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:text="thread randomization"
+                android:text="shuffle ID"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <CheckBox
-                android:id="@+id/activity_custom_test_thread_randomization_checkbox"
+                android:id="@+id/activity_custom_test_shuffle_id_checkbox"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="@id/activity_custom_test_thread_randomization_label"
-                app:layout_constraintTop_toBottomOf="@id/activity_custom_test_thread_randomization_label" />
+                android:checked="true"
+                app:layout_constraintStart_toStartOf="@id/activity_custom_test_shuffle_id_label"
+                app:layout_constraintTop_toBottomOf="@id/activity_custom_test_shuffle_id_label" />
         </android.support.constraint.ConstraintLayout>
 
         <android.support.constraint.ConstraintLayout
             android:id="@+id/activity_custom_test_subgroup_preserve_layout"
-            android:layout_width="202dp"
-            android:layout_height="49dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintLeft_toRightOf="@+id/activity_custom_test_pre_thread_randomization_layout"
+            app:layout_constraintLeft_toRightOf="@+id/activity_custom_test_shuffle_id_layout"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintWidth_percent=".5">
 
@@ -196,34 +228,168 @@
 
 
     <android.support.constraint.ConstraintLayout
-        android:id="@+id/activity_custom_test_row_5"
+        android:id="@+id/activity_custom_test_row_6"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_5">
+
+        <TextView
+            android:id="@+id/activity_custom_test_mem_stress_label"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="stress memory"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <CheckBox
+            android:id="@+id/activity_custom_test_mem_stress_checkbox"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="@id/activity_custom_test_mem_stress_label"
+            app:layout_constraintTop_toBottomOf="@id/activity_custom_test_mem_stress_label" />
+
+
+    </android.support.constraint.ConstraintLayout>
+
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/activity_custom_test_row_7"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_4">
-        <android.support.constraint.ConstraintLayout
-            android:id="@+id/activity_custom_test_stride_layout"
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_6">
+
+        <TextView
+            android:id="@+id/activity_custom_test_x_y_z_stride_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="x y z stride"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent=".5" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/activity_custom_test_x_y_z_stride_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent=".5">
+
+            <EditText
+                android:id="@+id/activity_custom_test_x_y_z_stride_input"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberSigned"
+                android:text="32"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="parent" />
+        </android.support.design.widget.TextInputLayout>
+
+
+    </android.support.constraint.ConstraintLayout>
+
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/activity_custom_test_row_8"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_7">
+
+
+        <TextView
+            android:id="@+id/activity_custom_test_stress_iterations_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="stress iterations"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent=".5" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/activity_custom_test_stress_iterations_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent=".5">
+
+            <EditText
+                android:id="@+id/activity_custom_test_stress_iterations_input"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="512"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="parent" />
+        </android.support.design.widget.TextInputLayout>
+
+        <TextView
+            android:id="@+id/activity_custom_test_pre_stress_iterations_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="pre stress iteration"
+            app:layout_constraintStart_toEndOf="@+id/activity_custom_test_stress_iterations_layout"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.5" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/activity_custom_test_pre_stress_iterations_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toEndOf="@+id/activity_custom_test_stress_iterations_layout"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.5">
+
+            <EditText
+                android:id="@+id/activity_custom_test_pre_stress_iterations_input"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberSigned"
+                android:text="100"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="parent" />
+        </android.support.design.widget.TextInputLayout>
+
+    </android.support.constraint.ConstraintLayout>
+
+
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/activity_custom_test_row_9"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_8">
+
+        <TextView
+            android:id="@+id/activity_custom_test_iteration_label"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="iterations"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/activity_custom_test_iteration_layout"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <TextView
-                android:id="@+id/activity_custom_test_stride_label"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:text="stride"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
             <EditText
-                android:id="@+id/activity_custom_test_stride_input"
+                android:id="@+id/activity_custom_test_iteration_input"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="@id/activity_custom_test_stride_label"
-                app:layout_constraintTop_toBottomOf="@id/activity_custom_test_stride_label" />
-        </android.support.constraint.ConstraintLayout>
+                android:inputType="numberSigned"
+                android:text="100"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="parent" />
+        </android.support.design.widget.TextInputLayout>
 
     </android.support.constraint.ConstraintLayout>
 
@@ -235,8 +401,7 @@
         android:layout_marginBottom="20dp"
         android:orientation="horizontal"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_5"
-        >
+        app:layout_constraintTop_toBottomOf="@+id/activity_custom_test_row_9">
 
         <android.support.v7.widget.AppCompatButton
             android:id="@+id/activity_main_test_start_button"
@@ -246,9 +411,9 @@
             android:layout_centerInParent="true"
             android:backgroundTint="@color/colorAccent"
             android:elevation="10dp"
-            android:onClick="executeQuickTest"
+            android:onClick="executeTest"
             android:padding="20dp"
-            android:text="@string/main_quick_test_button"
+            android:text="@string/custom_test_execute_test"
             android:textAppearance="@style/TextAppearance.AppCompat.Button"
             android:textColor="@color/white"
             app:layout_constraintBottom_toBottomOf="parent"

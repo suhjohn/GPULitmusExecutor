@@ -14,14 +14,16 @@ public class MainActivity extends Activity {
 
     public void executeQuickTest(View view) {
         Intent intent = new Intent(MainActivity.this, TestFinishedActivity.class);
-        Bundle bundle = new Bundle();
-        bundle.putInt("iteration", 1000);
-        intent.putExtras(bundle);
         startActivity(intent);
     }
 
-    public void createCustomTest(View view){
+    public void createCustomTest(View view) {
         Intent intent = new Intent(MainActivity.this, CustomTestActivity.class);
+        startActivity(intent);
+    }
+
+    public void executeFullTest(View view) {
+        Intent intent = new Intent(MainActivity.this, FullTestActivity.class);
         startActivity(intent);
     }
 }

@@ -7,23 +7,28 @@ import android.util.Log;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.loopj.android.http.RequestParams;
+import com.loopj.android.http.JsonHttpResponseHandler;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.json.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
-public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCompleted {
-    private final String commonHeaderFilepath = "tests/testing_common.h";
+import cz.msebera.android.httpclient.Header;
+import cz.msebera.android.httpclient.entity.StringEntity;
+import cz.msebera.android.httpclient.message.BasicHeader;
+import cz.msebera.android.httpclient.protocol.HTTP;
+
+// TODO refactor code using utils
+public class TestFinishedActivity extends AppCompatActivity {
+    private final String commonHeaderFilepath = "OpenCL_tests/interwg_base/testing_common.h";
+    private final int defaultIterations = 100;
     private TextView tv;
     private ProgressBar progressBar;
-    private int iteration;
+    private String litmusTestType;
+    private Integer iterations;
+    private String options;
+    private Integer xyStride;
     private String kernelFile;
     private String configFile;
 
@@ -32,72 +37,50 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
             return executeTest(arguments[0], arguments[1]);
         }
 
-        protected void onProgressUpdate(Integer... progress) {
-        }
-
-        /***
-         * response looks like the following:
-         * {
-         *  xydistance + offset:scratch_location: TestIterationObject
-         * }
-         * TODO figure out how to display information in a useful manner
-         * TODO send the data to the server
-         * @param response
-         */
         protected void onPostExecute(String response) {
-//            try {
-//                JSONObject responseJSON = new JSONObject(response);
-//                Iterator<String> keys = responseJSON.keys();
-//                List<String> keysList = new ArrayList<>();
-//                while (keys.hasNext()) keysList.add(keys.next());
-//                Collections.sort(keysList);
-//                StringBuilder displayTextBuilder = new StringBuilder();
-//                for (String key : keysList) {
-//                    JSONObject testResult = (JSONObject) responseJSON.get(key);
-//                    displayTextBuilder.append(key);
-//                    displayTextBuilder.append("\n");
-//                    Iterator<String> testKeys = testResult.keys();
-//                    while (testKeys.hasNext()){
-//                        String testKey = testKeys.next();
-//                        displayTextBuilder.append("        ");
-//                        displayTextBuilder.append(testKey + "  " + testResult.get(testKey));
-//                        displayTextBuilder.append("\n");
-//                    }
-//                }
-//                tv.setText(displayTextBuilder.toString());
-//            } catch (Exception e) {
-//                Log.e("onPostExecute:Error", e.getMessage());
-//            }
-            // StringEntity entity = new StringEntity(jsonObj.toString());
-            // entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
-            // ServerRestClient.post("test", entity, this);
+            try {
+                JSONObject requestData = new JSONObject();
+                requestData.put("result", response);
+                requestData.put("test_type", litmusTestType);
+                StringEntity entity = new StringEntity(requestData.toString());
+                entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+                ServerRestClient.post("test", entity, new JsonHttpResponseHandler() {
+                    public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                        Log.i("post.onSuccess", response.toString());
+                        Log.i("post.onSuccess", Integer.toString(statusCode));
+                    }
+                });
+            } catch (Exception e) {
+                Log.e("onPostExecute", e.getMessage());
+            }
             tv.setText(response);
         }
     }
 
-    public void taskCompleted(JSONObject response) {
-        Log.i("taskCompleted", "Upload complete");
-    }
-
-    private void setIteration() {
+    private void setBundleVariables() {
         Bundle bundle = getIntent().getExtras();
         try {
-            iteration = bundle.getInt("iteration");
+            iterations = bundle.getInt("iterations");
+            xyStride = bundle.getInt("xyStride");
+            litmusTestType = bundle.getString("litmusTestType");
+            options = bundle.getString("options");
         } catch (Exception e) {
-            iteration = 10;
+            iterations = defaultIterations;
+            xyStride = 32;
+            litmusTestType = "MP";
+            options = "";
         }
     }
 
-    // TODO: Take test types as parameters and set the filepaths
     private void setTestFilePath() {
-        kernelFile = "tests/MP/kernel.cl";
-        configFile = "tests/MP/config.txt";
+        kernelFile = String.format("OpenCL_tests/interwg_base/%s/kernel.cl", litmusTestType);
+        configFile = String.format("OpenCL_tests/interwg_base/%s/config.txt", litmusTestType);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.setIteration();
+        this.setBundleVariables();
         this.setTestFilePath();
         setContentView(R.layout.activity_test_finished);
         tv = findViewById(R.id.activity_test_finished_result);
@@ -105,7 +88,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
         new LitmustTestTask().execute(kernelFile, configFile);
     }
 
-    protected String executeTest(String kernelFile, String configFile) {
+    private String executeTest(String kernelFile, String configFile) {
         try {
             int err;
             // Combine testing_common and kernel.cl
@@ -117,8 +100,8 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
                 throw new IOException("Error while reading testing_common.");
             }
             testingCommonStream.close();
-            String testingCommonString = new String(testingCommonBuffer);
-            testingCommonString += "\n";
+            String testingCommonStr = new String(testingCommonBuffer);
+            testingCommonStr += "\n";
 
             InputStream kernelStream = getAssets().open(kernelFile);
             int kernelSize = kernelStream.available();
@@ -128,10 +111,9 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
                 throw new IOException("Error while reading kernel.");
             }
             kernelStream.close();
-            String kernelString = new String(kernelBuffer);
+            String kernelStr = new String(kernelBuffer);
 
-            kernelString = kernelString.substring(kernelString.indexOf('\n') + 1);
-            kernelString = testingCommonString + kernelString;
+            kernelStr = testingCommonStr + kernelStr;
 
             InputStream configStream = getAssets().open(configFile);
             int configSize = configStream.available();
@@ -142,7 +124,7 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
             }
             configStream.close();
             String configString = new String(configBuffer);
-            return executeLitmusTest(configString, kernelString, iteration);
+            return executeLitmusTest(configString, kernelStr, iterations, options, xyStride);
         } catch (Exception e) {
             Log.e("executeQuickTest", e.getMessage());
             e.printStackTrace();
@@ -152,7 +134,9 @@ public class TestFinishedActivity extends AppCompatActivity implements OnLoopjCo
 
     public native String executeLitmusTest(String configString,
                                            String kernelString,
-                                           int iteration);
+                                           int iterations,
+                                           String options,
+                                           int x_y_stride);
 
     static {
         System.loadLibrary("litmus-test");
