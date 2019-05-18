@@ -21,16 +21,17 @@ import cz.msebera.android.httpclient.protocol.HTTP;
 
 public class FullTestActivity extends AppCompatActivity {
     private TextView tv;
-    private static Integer iterations = 10;
+    private static Integer iterations = 10000;
     private static String[] tests = {"MP", "LB", "SB"};
+    // TODO change to kv
     private static Integer[][] options = {
             {0, 1, 2}, // LITMUS_TEST_INDEXES
-            {0, 1, 2, 4, 8, 16, 32, 64, 128}, // X_Y_STRIDE
+            {1, 2, 4, 8, 16, 32, 64, 128}, // X_Y_STRIDE
             {0, 1}, // MEM_STRESS
-            {0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512}, // STRESS_ITERATIONS
+            {2, 16, 64, 256, 512}, // STRESS_ITERATIONS
             {0, 1, 2, 3}, // STRESS_PATTERN
             {0, 1}, // PRE_STRESS
-            {0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512}, // PRE_STRESS_ITERATIONS
+            {2, 16, 64, 256, 512}, // PRE_STRESS_ITERATIONS
             {0, 1, 2, 3}, // PRE_STRESS_PATTERN
             {0, 1}, // BARRIER
             {0, 1}, // ID_SHUFFLE
@@ -70,7 +71,17 @@ public class FullTestActivity extends AppCompatActivity {
         if (Arrays.equals(optionIndexes, maxOptionIndexes)) {
             throw new Exception("[MaxOptionException] end of permutation.");
         }
-        return getNextPermutatedOption(optionIndexes, optionIndexes.length - 1);
+        Integer[] nextPermutation =
+                getNextPermutatedOption(optionIndexes, optionIndexes.length - 1);
+        while (nextPermutation[2] == 0 && (nextPermutation[3] != 0 || nextPermutation[4] != 0)) {
+            nextPermutation = getNextPermutatedOption(
+                    nextPermutation, optionIndexes.length - 1);
+        }
+        while (nextPermutation[5] == 0 && (nextPermutation[6] != 0 || nextPermutation[7] != 0)) {
+            nextPermutation = getNextPermutatedOption(
+                    nextPermutation, optionIndexes.length - 1);
+        }
+        return nextPermutation;
     }
 
     private static Integer[] getNextPermutatedOption(Integer[] optionIndexes, int index) {
@@ -82,9 +93,11 @@ public class FullTestActivity extends AppCompatActivity {
         return optionIndexes;
     }
 
+    // Figure out solution for memory leak
     private class LitmustTestTask extends AsyncTask<Integer, Integer, String> {
         private Integer[] currentOptionIndexes;
         private String litmusTestType;
+        private Integer xyStride;
 
         protected String doInBackground(Integer[] optionIndexes) {
             String kernelString;
@@ -99,7 +112,7 @@ public class FullTestActivity extends AppCompatActivity {
                 kernelString = testFileHandler.readKernel();
                 configString = testFileHandler.readConfig();
             } catch (Exception e) {
-                Log.e("LitmusTestTask.doInBackground", e.getMessage());
+                Log.e("doInBackground", e.getMessage());
                 return "";
             }
             for (int i = 2; i < options.length; i++) {
@@ -111,16 +124,21 @@ public class FullTestActivity extends AppCompatActivity {
             String executionOptions = executionOptionBuilder.toString();
             LitmusTest litmusTest = new LitmusTest(
                     kernelString, configString, executionOptions, iterations, xyStride);
+            Log.i("doInBackground", "Executing test with following indexes");
+            Log.i("doInBackground", Arrays.toString(optionIndexes));
             this.currentOptionIndexes = optionIndexes.clone();
             this.litmusTestType = litmusTestType;
+            this.xyStride = xyStride;
             return litmusTest.execute();
         }
 
         protected void onPostExecute(String response) {
+            Log.i("onPostExecute", response);
             try {
                 JSONObject requestData = new JSONObject();
                 requestData.put("result", response);
                 requestData.put("test_type", this.litmusTestType);
+                requestData.put("x_y_stride", this.xyStride);
                 StringEntity entity = new StringEntity(requestData.toString());
                 entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
                 ServerRestClient.post("test", entity, new JsonHttpResponseHandler() {
@@ -137,7 +155,7 @@ public class FullTestActivity extends AppCompatActivity {
                 Integer[] nextOptionIndexes = getNextPermutatedOption(this.currentOptionIndexes);
                 new LitmustTestTask().execute(nextOptionIndexes);
             } catch (Exception e) {
-                Log.e("LitmusTestTask.onPostExecute", e.getMessage());
+                Log.e("onPostExecute", e.getMessage());
             }
         }
     }
@@ -150,9 +168,10 @@ public class FullTestActivity extends AppCompatActivity {
         // Permutation execution
         Integer[] startOptionIndexes = new Integer[options.length];
         for (int i = 0; i < startOptionIndexes.length; i++) {
-            startOptionIndexes[i] = 1;
+            startOptionIndexes[i] = 0;
         }
         startOptionIndexes[0] = 0;
+//        Integer[] startOptionIndexes = {0, 3, 0, 0, 0, 0, 0, 0, 0, 0};
         new LitmustTestTask().execute(startOptionIndexes);
     }
 }

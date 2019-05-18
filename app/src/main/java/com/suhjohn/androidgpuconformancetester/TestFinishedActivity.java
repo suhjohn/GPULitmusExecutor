@@ -38,10 +38,12 @@ public class TestFinishedActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String response) {
+            Log.i("onPostExecute", response);
             try {
                 JSONObject requestData = new JSONObject();
                 requestData.put("result", response);
                 requestData.put("test_type", litmusTestType);
+                requestData.put("x_y_stride", xyStride);
                 StringEntity entity = new StringEntity(requestData.toString());
                 entity.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
                 ServerRestClient.post("test", entity, new JsonHttpResponseHandler() {
@@ -53,7 +55,9 @@ public class TestFinishedActivity extends AppCompatActivity {
             } catch (Exception e) {
                 Log.e("onPostExecute", e.getMessage());
             }
-            tv.setText(response);
+            String finalResponse = String.format(
+                    "Test: %s\nx_y_stride: %d\n", litmusTestType, xyStride) + response;
+            tv.setText(finalResponse);
         }
     }
 

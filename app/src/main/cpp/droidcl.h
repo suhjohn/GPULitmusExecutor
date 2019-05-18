@@ -245,8 +245,8 @@ string DroidCL::default_so_paths[7] = {
         "/system/vendor/lib/libOpenCL.so",
         "/system/vendor/lib64/libOpenCL.so",
         "/system/vendor/lib64/libGLES_mali.so",
+        "/system/vendor/lib/egl/libGLESv2_POWERVR_ROGUE.so",
         "/system/vendor/lib/libPVROCL.so",
-        "/data/data/org.pocl.libs/files/lib/libpocl.so",
 };
 
 #endif //ANDROID_OPENCLEXAMPLE_DROIDCL_H
