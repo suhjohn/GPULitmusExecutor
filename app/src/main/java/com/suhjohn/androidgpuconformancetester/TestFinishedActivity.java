@@ -59,6 +59,7 @@ public class TestFinishedActivity extends AppCompatActivity {
                     "Test: %s\nx_y_stride: %d\n", litmusTestType, xyStride) + response;
             tv.setText(finalResponse);
         }
+        
     }
 
     private void setBundleVariables() {
